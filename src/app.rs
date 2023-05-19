@@ -4,6 +4,11 @@ use yew::prelude::*;
 pub fn app() -> Html {
     html! {
         <main>
+            // First I name the agents involved
+            <TimelineMenu />
+            <BalanceTimeline />
+            <IncomeForm />
+            <ExpenseForm />
         </main>
     }
 }
