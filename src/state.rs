@@ -1,87 +1,96 @@
-use std::{collections::BTreeMap, vec};
+use itertools::Itertools;
+use std::collections::BTreeMap;
 
-use wasm_bindgen::JsValue;
+pub type TransactionId = u32;
+pub type Date = String;
+pub type Dollars = u32;
+pub type DateSummaries = BTreeMap<Date, DateSummary>;
+pub type Transactions = BTreeMap<TransactionId, Transaction>;
 
 #[derive(Clone, PartialEq)]
 pub struct State {
-    pub dates: BTreeMap<String, (Vec<IncomeEntry>, Vec<ExpenseEntry>)>,
-    pub income_entries: IncomeEntries,
-    pub expense_entries: ExpenseEntries,
+    pub transactions: Transactions,
+    last_id: u32,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
-            dates: BTreeMap::new(),
-            income_entries: Default::default(),
-            expense_entries: Default::default(),
+            transactions: Default::default(),
+            last_id: 0,
         }
     }
 
-    pub fn dates(&self) -> Vec<Date> {
-        let mut dates = Vec::new();
-        for (date, (income_entries, expense_entries)) in &self.dates {
-            dates.push(Date {
-                date: date.clone(),
-                income_entries: income_entries.clone(),
-                expense_entries: expense_entries.clone(),
-            })
+    pub fn date_summaries(&self) -> DateSummaries {
+        let dates = self.transactions.values().map(|e| e.date.clone()).unique();
+        let mut result = BTreeMap::new();
+        for date in dates {
+            let transactions: Vec<Transaction> = self
+                .transactions
+                .values()
+                .filter(|e| e.date == date)
+                .map(|tr| tr.clone())
+                .collect_vec();
+            result.insert(
+                date,
+                DateSummary {
+                    income: transactions
+                        .iter()
+                        .filter(|e| e.kind == TransactionKind::Income)
+                        .map(|e| e.value)
+                        .sum(),
+                    expenses: transactions
+                        .iter()
+                        .filter(|e| e.kind == TransactionKind::Expense)
+                        .map(|e| e.value)
+                        .sum(),
+                },
+            );
         }
-        dates
+        result
     }
 
-    //TODO unify submission logic
-
-    pub fn submit_income_form(&mut self, entry: IncomeEntry) {
-        gloo_console::log!(JsValue::from(format!("income form entry: {entry:?}")));
-        self.income_entries.push(entry.clone());
-        if let Some((income_entries, _)) = self.dates.get_mut(&entry.date) {
-            income_entries.push(entry);
-        } else {
-            self.dates.insert(entry.date.clone(), (vec![entry], vec![]));
-        };
+    pub fn delete(&mut self, id: TransactionId) {
+        self.transactions.remove(&id);
     }
 
-    pub fn submit_expense_form(&mut self, entry: ExpenseEntry) {
-        gloo_console::log!(JsValue::from(format!("expense form entry: {entry:?}")));
-        self.expense_entries.push(entry.clone());
-        if let Some((_, expense_entries)) = self.dates.get_mut(&entry.date) {
-            expense_entries.push(entry)
-        } else {
-            self.dates.insert(entry.date.clone(), (vec![], vec![entry]));
-        };
+    pub fn insert(&mut self, tr: Transaction) {
+        let id = self.next_id();
+        self.transactions.insert(id, tr);
     }
-    
+
+    fn next_id(&mut self) -> TransactionId {
+        self.last_id += 1;
+        self.last_id
+    }
+
 }
 
-#[derive(PartialEq, Clone)]
-pub struct Date {
-    pub date: String,
-    pub income_entries: Vec<IncomeEntry>,
-    pub expense_entries: Vec<ExpenseEntry>,
+#[derive(Debug, PartialEq, Clone)]
+pub struct DateSummary {
+    pub income: Dollars,
+    pub expenses: Dollars,
 }
 
-impl Date {
-    pub fn total_income(&self) -> u32 {
-        self.income_entries.iter().map(|a| a.value).sum()
-    }
-    pub fn total_expenses(&self) -> u32 {
-        self.expense_entries.iter().map(|a| a.value).sum()
+#[derive(Debug, PartialEq, Clone)]
+pub enum TransactionKind {
+    Income,
+    Expense,
+}
+
+impl std::fmt::Display for TransactionKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use TransactionKind::*;
+        match self {
+            Income => write!(f, "Income"),
+            Expense => write!(f, "Expense"),
+        }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct IncomeEntry {
-    pub value: u32,
+pub struct Transaction {
+    pub kind: TransactionKind,
+    pub value: Dollars,
     pub date: String,
 }
-
-pub type IncomeEntries = Vec<IncomeEntry>;
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ExpenseEntry {
-    pub value: u32,
-    pub date: String,
-}
-
-pub type ExpenseEntries = Vec<ExpenseEntry>;
