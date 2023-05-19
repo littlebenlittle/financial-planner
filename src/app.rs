@@ -10,17 +10,23 @@ pub fn app() -> Html {
     html! {
         <main>
             <Timeline dates={state.dates()} />
-            <IncomeForm submit={
-                let state = state_handle.clone();
-                move |entry: IncomeFormEntry| {
-                    let mut new_state = (*state).clone();
-                    new_state.submit_income_form(entry);
-                    state.set(new_state)
+            <p>{"Income Form"}</p>
+            <IncomeEntriesList entries={state.income_entries}/>
+            <IncomeForm
+                submit={
+                    let state = state_handle.clone();
+                    move |entry: IncomeEntry| {
+                        let mut new_state = (*state).clone();
+                        new_state.submit_income_form(entry);
+                        state.set(new_state)
+                    }
                 }
-            }/>
+            />
+            <p>{"Expense Form"}</p>
+            <ExpenseEntriesList entries={state.expense_entries}/>
             <ExpenseForm submit={
                 let state = state_handle.clone();
-                move |entry: ExpenseFormEntry| {
+                move |entry: ExpenseEntry| {
                     let mut new_state = (*state).clone();
                     new_state.submit_expense_form(entry);
                     state.set(new_state)
@@ -58,7 +64,7 @@ pub fn timeline(props: &TimelineProps) -> Html {
 
 #[derive(Properties, PartialEq)]
 pub struct IncomeFormProps {
-    pub submit: Callback<IncomeFormEntry>,
+    pub submit: Callback<IncomeEntry>,
 }
 
 #[function_component(IncomeForm)]
@@ -75,7 +81,7 @@ pub fn income_form(props: &IncomeFormProps) -> Html {
         let value = (*value_handle).clone();
         move |_| match value.parse::<u32>() {
             Ok(n) => {
-                submit_callback.emit(IncomeFormEntry {
+                submit_callback.emit(IncomeEntry {
                     value: n,
                     date: (*date_handle).clone(),
                 });
@@ -110,7 +116,6 @@ pub fn income_form(props: &IncomeFormProps) -> Html {
 
     html! {
         <section>
-            <p>{"Income Form"}</p>
             <input onchange={on_value_change}
                 type="text"
                 value={value}
@@ -126,7 +131,7 @@ pub fn income_form(props: &IncomeFormProps) -> Html {
 
 #[derive(Properties, PartialEq)]
 pub struct ExpenseFormProps {
-    pub submit: Callback<ExpenseFormEntry>,
+    pub submit: Callback<ExpenseEntry>,
 }
 
 #[function_component(ExpenseForm)]
@@ -143,7 +148,7 @@ pub fn expense_form(props: &ExpenseFormProps) -> Html {
         let value = (*value_handle).clone();
         move |_| match value.parse::<u32>() {
             Ok(n) => {
-                submit_callback.emit(ExpenseFormEntry {
+                submit_callback.emit(ExpenseEntry {
                     value: n,
                     date: (*date_handle).clone(),
                 });
@@ -178,7 +183,6 @@ pub fn expense_form(props: &ExpenseFormProps) -> Html {
 
     html! {
         <section>
-            <p>{"Expense Form"}</p>
             <input onchange={on_value_change}
                 type="text"
                 value={value}
@@ -189,5 +193,49 @@ pub fn expense_form(props: &ExpenseFormProps) -> Html {
             />
             <button onclick={submit}>{"Submit"}</button>
         </section>
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct IncomeEntriesListProps {
+    entries: IncomeEntries
+}
+
+#[function_component(IncomeEntriesList)]
+pub fn income_entries_list(props: &IncomeEntriesListProps) -> Html {
+    fn entry_to_html(entry: &IncomeEntry) -> Html {
+        html! {
+            <>
+            <p>{"Date: "}{entry.date.clone()}</p>
+            <p>{"Value: "}{entry.value}</p>
+            </>
+        }
+    }
+    html!{
+        <ol>
+            {for props.entries.iter().map(entry_to_html)}
+        </ol>
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct ExpenseEntriesListProps {
+    entries: ExpenseEntries
+}
+
+#[function_component(ExpenseEntriesList)]
+pub fn income_entries_list(props: &ExpenseEntriesListProps) -> Html {
+    fn entry_to_html(entry: &ExpenseEntry) -> Html {
+        html! {
+            <>
+            <p>{"Date: "}{entry.date.clone()}</p>
+            <p>{"Value: "}{entry.value}</p>
+            </>
+        }
+    }
+    html!{
+        <ol>
+            {for props.entries.iter().map(entry_to_html)}
+        </ol>
     }
 }
