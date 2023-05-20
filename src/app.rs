@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, error::Error};
 
 use crate::state::*;
-use chrono::NaiveDate;
 use itertools::Itertools;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
@@ -14,7 +13,7 @@ use TransactionKind::{Expense, Income};
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let state_handle = use_state_eq(State::new);
+    let state_handle = use_state_eq(State::example);
     let state = (*state_handle).clone();
     html! {
         <main>
@@ -272,8 +271,11 @@ pub fn timeline(props: &TimelineProps) -> Html {
         }
     };
     use_effect({
-        let start_date = (*start_date_handle).clone();
+        let mut start_date = (*start_date_handle).clone();
         move || {
+            if start_date.len() == 0 {
+                start_date = "2023-05-01".to_owned();
+            }
             match start_date.parse() {
                 Err(e) => gloo_console::log!(format!("{e:?}")),
                 Ok(start_date) => match draw_timeline(&canvas_id, dates, start_date) {
@@ -290,7 +292,7 @@ pub fn timeline(props: &TimelineProps) -> Html {
         <h3>{props.title.clone()}</h3>
         <canvas
             id={props.canvas_id.clone()}
-            style={"width: 80%; height: auto;"}
+            style={"width: 80%; height: auto; max-width: 500px;"}
         />
         <p>{"Start Date: "}</p>
         <input onchange={on_start_date_change}
@@ -311,27 +313,34 @@ fn draw_timeline(
 
     root.fill(&WHITE)?;
 
-    let mut chart = ChartBuilder::on(&root)
-        .x_label_area_size(35)
-        .y_label_area_size(40)
-        .margin(5)
-        //.caption("Histogram Test", ("sans-serif", 50.0))
-        .build_cartesian_2d((0u32..10u32).into_segmented(), 0u32..10u32)?;
-
-    chart
-        .configure_mesh()
-        .disable_x_mesh()
-        .bold_line_style(&WHITE.mix(0.3))
-        .y_desc("Dollars")
-        .x_desc("Date")
-        .axis_desc_style(("sans-serif", 15))
-        .draw()?;
-
     let income_data = dates
         .iter()
         .map(|(d, s)| (d.sub(start_date).num_days() as u32, s.income))
         .collect_vec();
     gloo_console::log!(format!("{income_data:?}"));
+    let max = if let Some(value) = income_data.iter().map(|pair| pair.1).max() {
+        math::round::floor(value as f64 * 1.1, 1).max(100.0) as u32
+    } else {
+        return Ok(());
+    };
+
+    let mut chart = ChartBuilder::on(&root)
+        .x_label_area_size(35)
+        .y_label_area_size(50)
+        .margin(5)
+        //.caption("Histogram Test", ("sans-serif", 50.0))
+        .build_cartesian_2d((1u32..10u32).into_segmented(), 0u32..max)?;
+
+    chart
+        .configure_mesh()
+        .disable_x_mesh()
+        .disable_y_mesh()
+        .y_labels(10)
+        .bold_line_style(&WHITE.mix(0.3))
+        .y_desc("Dollars")
+        .x_desc("Date")
+        .axis_desc_style(("sans-serif", 15))
+        .draw()?;
 
     chart.draw_series(
         Histogram::vertical(&chart)

@@ -21,6 +21,23 @@ impl State {
         }
     }
 
+    pub fn example() -> Self {
+        use TransactionKind::*;
+        let mut transactions = BTreeMap::default();
+        transactions.insert(
+            1,
+            Transaction {
+                kind: Income,
+                value: 150,
+                date: "2023-05-05".parse().unwrap(),
+            },
+        );
+        Self {
+            transactions,
+            last_id: 0,
+        }
+    }
+
     pub fn date_summaries(&self) -> DateSummaries {
         let dates = self
             .transactions
