@@ -2,8 +2,8 @@ use itertools::Itertools;
 use std::collections::BTreeMap;
 
 pub type TransactionId = u32;
-pub type Date = String;
 pub type Dollars = u32;
+pub type Date = chrono::NaiveDate;
 pub type DateSummaries = BTreeMap<Date, DateSummary>;
 pub type Transactions = BTreeMap<TransactionId, Transaction>;
 
@@ -22,7 +22,11 @@ impl State {
     }
 
     pub fn date_summaries(&self) -> DateSummaries {
-        let dates = self.transactions.values().map(|e| e.date.clone()).unique();
+        let dates = self
+            .transactions
+            .values()
+            .map(|tr| tr.date.clone())
+            .unique();
         let mut result = BTreeMap::new();
         for date in dates {
             let transactions: Vec<Transaction> = self
@@ -63,7 +67,6 @@ impl State {
         self.last_id += 1;
         self.last_id
     }
-
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -92,5 +95,5 @@ impl std::fmt::Display for TransactionKind {
 pub struct Transaction {
     pub kind: TransactionKind,
     pub value: Dollars,
-    pub date: String,
+    pub date: Date,
 }
