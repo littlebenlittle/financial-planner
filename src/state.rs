@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, error::Error};
 
 pub type TransactionId = u32;
 pub type Dollars = u32;
@@ -23,19 +23,11 @@ impl State {
 
     pub fn example() -> Self {
         use TransactionKind::*;
-        let mut transactions = BTreeMap::default();
-        transactions.insert(
-            1,
-            Transaction {
-                kind: Income,
-                value: 150,
-                date: "2023-05-05".parse().unwrap(),
-            },
-        );
-        Self {
-            transactions,
-            last_id: 0,
-        }
+        let mut this = Self::new();
+        this.insert((Income, 150, "2023-05-05".parse().unwrap()));
+        this.insert((Income, 200, "2023-05-09".parse().unwrap()));
+        this.insert((Expense, 300, "2023-05-15".parse().unwrap()));
+        this
     }
 
     pub fn date_summaries(&self) -> DateSummaries {
@@ -75,9 +67,9 @@ impl State {
         self.transactions.remove(&id);
     }
 
-    pub fn insert(&mut self, tr: Transaction) {
+    pub fn insert(&mut self, tr: impl Into<Transaction>) {
         let id = self.next_id();
-        self.transactions.insert(id, tr);
+        self.transactions.insert(id, tr.into());
     }
 
     fn next_id(&mut self) -> TransactionId {
@@ -113,4 +105,14 @@ pub struct Transaction {
     pub kind: TransactionKind,
     pub value: Dollars,
     pub date: Date,
+}
+
+impl From<(TransactionKind, Dollars, Date)> for Transaction {
+    fn from(value: (TransactionKind, Dollars, Date)) -> Self {
+        Transaction {
+            kind: value.0,
+            value: value.1,
+            date: value.2,
+        }
+    }
 }
