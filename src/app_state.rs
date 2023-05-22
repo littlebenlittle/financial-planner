@@ -90,9 +90,31 @@ impl Reducible for State {
 
 impl State {
     pub fn timeline_data(&self) -> TimelineData {
-        unimplemented!()
+        compute_timeline_data(&self.0)
     }
     pub fn transactions_list_data(&self) -> TransactionsListData {
-        unimplemented!()
+        compute_transactions_list_data(&self.0)
     }
+}
+
+fn compute_timeline_data(actions: &Vec<Action>) -> TimelineData {
+    // Spec:
+    // 1. Every date in range is part of the data
+    // 2. The data is sorted by the date of the transaction
+    // 3. Every date in the data has an income summary equal to the sum
+    //    of the value of every non-deleted income record ocurring on that date
+    // 4. Every date in the data has an expense summary equal to the sum
+    //    of the value of every non-deleted expense record ocurring on that date
+    // 5. Every date in the data has a balance summary equal to the sum
+    //    of the value of every non-deleted income record ocurring before that date
+    //    less the sum of the value of every non-deleted expense record ocurring before
+    //    that date
+    unimplemented!()
+}
+
+fn compute_transactions_list_data(actions: &Vec<Action>) -> TransactionsListData {
+    // Spec:
+    // 1. Every non-deleted transaction is present in the data
+    // 2. The data is sorted by the date of the transaction
+    unimplemented!()
 }
