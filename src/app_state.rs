@@ -284,24 +284,26 @@ mod test {
                 |b| b.try_into_delete_id(),
                 |a_id, b_id| a_id == b_id,
             )
-            .is_some();
         }
         true
     }
 
-    fn for_all_eventually<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> Option<(&Action, &Action)>
+    fn for_all_eventually<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> bool
     where
         P: Fn(&Action) -> Option<TransactionId>,
         Q: Fn(&Action) -> Option<TransactionId>,
         R: Fn(&TransactionId, &TransactionId) -> bool,
     {
-        let firsts = seq.iter().filter_map(p).enumerate();
+        let firsts = seq.iter().filter_map(p).enumerate().peekable();
         let seconds = seq.iter().filter_map(q).enumerate();
-        for ((i, f), (j, s)) in firsts.zip(seconds) {
-            if i < j && r(&f, &s) {
-                return Some((&seq[i], &seq[j]))
+        for (i, f) in firsts {
+            for (j, s) in seconds {
+                if i < j && r(&f, &s) {
+                    continue
+                }
             }
+            return false
         }
-        return None
+        return true
     }
 }
