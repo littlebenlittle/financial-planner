@@ -1,19 +1,24 @@
+use chrono::{Duration, NaiveDate};
 use itertools::Itertools;
 use std::{collections::BTreeMap, error::Error};
 
 pub type TransactionId = u32;
 pub type Dollars = u32;
+pub type Income = Dollars;
+pub type Expenses = Dollars;
+pub type Balance = Dollars;
+pub type TimelineData = Vec<(Income, Expenses, Balance)>;
 pub type Date = chrono::NaiveDate;
 pub type DateSummaries = BTreeMap<Date, DateSummary>;
-pub type Transactions = BTreeMap<TransactionId, Transaction>;
+pub type TransactionRecord = (TransactionId, Transaction);
 
 #[derive(Clone, PartialEq)]
-pub struct State {
-    pub transactions: Transactions,
-    last_id: u32,
+pub struct Transactions {
+    transactions: BTreeMap<TransactionId, Transaction>,
+    last_id: TransactionId,
 }
 
-impl State {
+impl Transactions {
     pub fn new() -> Self {
         Self {
             transactions: Default::default(),
@@ -75,6 +80,102 @@ impl State {
     fn next_id(&mut self) -> TransactionId {
         self.last_id += 1;
         self.last_id
+    }
+
+    pub fn timeline_data(&self, start: Date, end: Date) -> Option<TimelineData> {
+        let n_days = {
+            let n_days = (end - start).num_days();
+            if n_days < 0 {
+                return None
+            }
+            n_days as usize
+        };
+        let transactions: Vec<(u32, Transaction)> = self
+            .transactions
+            .iter()
+            .filter(|(id, tr)| tr.date >= start && tr.date < end)
+            .map(|(id, tr)| ((*id).clone(), (*tr).clone()))
+            .collect_vec();
+        let mut timeline_data = Vec::with_capacity(n_days);
+        let mut balance = 0;
+        for (i, date) in start.iter_days().take(n_days).enumerate() {
+            let mut daily_income = 0;
+            let mut daily_expenses = 0;
+            for (_id, tr) in transactions.iter().filter(|(id, tr)| tr.date == date ) {
+                match tr.kind {
+                    TransactionKind::Income => {
+                        balance += tr.value;
+                        daily_income += tr.value;
+                    }
+                    TransactionKind::Expense => {
+                        balance -= tr.value;
+                        daily_expenses += tr.value;
+                    }
+                }
+            }
+            timeline_data[i] = (daily_income, daily_expenses, balance);
+        }
+        Some(timeline_data)
+    }
+    
+    pub fn transactions(&self) -> BTreeMap<TransactionId, Transaction> {
+        self.transactions.clone()
+    }
+    
+}
+
+pub struct Pipeline<T: IntoIterator<Item = TransactionRecord>>(T);
+
+impl<T: IntoIterator<Item = TransactionRecord>> Pipeline<T> {
+    pub fn kind(
+        self,
+        kind: TransactionKind,
+    ) -> Pipeline<impl IntoIterator<Item = TransactionRecord>> {
+        Pipeline(self.0.into_iter().filter(move |(id, tr)| tr.kind == kind))
+    }
+
+    pub fn before(self, date: Date) -> Pipeline<impl IntoIterator<Item = TransactionRecord>> {
+        Pipeline(self.0.into_iter().filter(move |(id, tr)| tr.date < date))
+    }
+
+    pub fn after(self, date: Date) -> Pipeline<impl IntoIterator<Item = TransactionRecord>> {
+        Pipeline(self.0.into_iter().filter(move |(id, tr)| tr.date >= date))
+    }
+
+    pub fn between(
+        self,
+        start: Date,
+        end: Date,
+    ) -> Pipeline<impl IntoIterator<Item = TransactionRecord>> {
+        self.after(start).before(end)
+    }
+
+    pub fn values(self) -> impl Iterator<Item = Dollars> {
+        self.0.into_iter().map(|(id, tr)| tr.value)
+    }
+}
+
+impl<T: IntoIterator<Item = TransactionRecord>> From<T> for Pipeline<T> {
+    fn from(value: T) -> Self {
+        Pipeline(value)
+    }
+}
+
+impl<T: IntoIterator<Item = TransactionRecord>> IntoIterator for Pipeline<T> {
+    type Item = T::Item;
+    type IntoIter = T::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+pub trait AsPipeline: IntoIterator<Item = TransactionRecord> + Sized + Clone {
+    fn pipeline(&self) -> Pipeline<Self>;
+}
+
+impl<T: IntoIterator<Item = TransactionRecord> + Sized + Clone> AsPipeline for T {
+    fn pipeline(&self) -> Pipeline<Self> {
+        Pipeline(self.clone())
     }
 }
 

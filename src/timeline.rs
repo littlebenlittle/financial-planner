@@ -1,7 +1,7 @@
-use std::{error::Error, ops::{Sub, Add}};
+use std::error::Error;
 
 use crate::state::*;
-use chrono::{NaiveDate, Duration};
+use chrono::{Duration, NaiveDate};
 use itertools::Itertools;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
@@ -11,15 +11,16 @@ use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct TimelineProps {
-    pub dates: DateSummaries,
+    pub data: Option<TimelineData>,
     pub title: String,
     pub canvas_id: String,
+    pub set_start_date: Callback<Date>,
+    pub set_end_date: Callback<Date>,
 }
 
 #[function_component(Timeline)]
 pub fn timeline(props: &TimelineProps) -> Html {
     let canvas_id = props.canvas_id.clone();
-    let dates = props.dates.clone();
 
     let start_date_handle = use_state(String::new);
     let on_start_date_change = {
@@ -50,6 +51,7 @@ pub fn timeline(props: &TimelineProps) -> Html {
     use_effect({
         let mut start_date = (*start_date_handle).clone();
         let mut end_date = (*end_date_handle).clone();
+        let data = props.data.clone().unwrap_or_default();
         move || {
             if start_date.len() == 0 {
                 start_date = "2023-05-01".to_owned();
@@ -61,10 +63,12 @@ pub fn timeline(props: &TimelineProps) -> Html {
                 Err(e) => gloo_console::log!(format!("{e:?}")),
                 Ok(start_date) => match end_date.parse::<Date>() {
                     Err(e) => gloo_console::log!(format!("{e:?}")),
-                    Ok(end_date) => match draw_timeline(&canvas_id, dates, start_date, end_date) {
-                        Err(e) => gloo_console::log!(format!("{e:?}")),
-                        _ => {}
-                    },
+                    Ok(end_date) => {
+                        match draw_timeline(&canvas_id, data, start_date) {
+                            Err(e) => gloo_console::log!(format!("{e:?}")),
+                            _ => {}
+                        }
+                    }
                 },
             }
             || {}
@@ -93,43 +97,24 @@ pub fn timeline(props: &TimelineProps) -> Html {
     }
 }
 
+// TODO: this method should be a view; computations performed by State object
 fn draw_timeline(
     canvas_id: &str,
-    dates: DateSummaries,
+    data: TimelineData,
     start_date: Date,
-    end_date: Date,
 ) -> Result<(), Box<dyn Error>> {
+    let end_date = start_date + Duration::days(data.len() as i64);
     let backend = CanvasBackend::new(canvas_id).expect("cannot find canvas");
     let root = backend.into_drawing_area();
 
     root.fill(&WHITE)?;
 
-    let income_data = dates
+    let max = if let Some(value) = data
         .iter()
-        .map(|(d, s)| (d.to_owned(), s.income))
-        .collect_vec();
-    gloo_console::log!(format!("income: {income_data:?}"));
-
-    let expense_data = dates
-        .iter()
-        .map(|(d, s)| (d.to_owned(), s.expenses))
-        .collect_vec();
-    gloo_console::log!(format!("expenses: {expense_data:?}"));
-
-    let mut balance_data = Vec::with_capacity((start_date -end_date).num_days() as usize);
-    for i in 0..balance_data.len()-1 {
-        balance_data[i] = (start_date + Duration::days(i as i64), income_data[i].1 - expense_data[i].1)
-    }
-
-    gloo_console::log!(format!("expenses: {expense_data:?}"));
-
-    let max = if let Some(value) = income_data
-        .iter()
-        .chain(expense_data.iter())
-        .map(|pair| pair.1)
+        .map(|(income, expenses, balance)| income.max(expenses).max(balance))
         .max()
     {
-        math::round::floor(value as f64 * 1.1, 1).max(100.0) as u32
+        math::round::floor(*value as f64 * 1.1, 1).max(100.0) as u32
     } else {
         return Ok(());
     };
@@ -159,19 +144,31 @@ fn draw_timeline(
     chart.draw_series(
         Histogram::vertical(&chart)
             .style(BLUE.mix(0.5).filled())
-            .data(income_data),
+            .data(
+                data.iter()
+                    .enumerate()
+                    .map(|(n, (b, i, e))| (start_date + Duration::days(n as i64), *i)),
+            ),
     )?;
 
     chart.draw_series(
         Histogram::vertical(&chart)
             .style(RED.mix(0.5).filled())
-            .data(expense_data),
+            .data(
+                data.iter()
+                    .enumerate()
+                    .map(|(n, (b, i, e))| (start_date + Duration::days(n as i64), *e)),
+            ),
     )?;
 
     chart.draw_series(
         Histogram::vertical(&chart)
             .style(BLACK.mix(0.5).filled())
-            .data(balance_data),
+            .data(
+                data.iter()
+                    .enumerate()
+                    .map(|(n, (b, i, e))| (start_date + Duration::days(n as i64), *b)),
+            ),
     )?;
 
     root.present()?;

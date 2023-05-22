@@ -1,0 +1,19 @@
+---
+meta:
+  created: "2023-05-20T11:12:32.428899901-06:00"
+  modified: "2023-05-20T11:12:32.428899901-06:00"
+default_frontmatter:
+  title: "@title"
+  id: "@id"
+  date: "@created"
+zettels:
+  2CGWuxNOS6NWKNWxyj:
+    created: "2023-05-20T11:13:40.089221174-06:00"
+    modified: "2023-05-20T11:13:40.089221174-06:00"
+    title: Exploring the Tool
+    path: 01-Exploring-the-Tool.md
+  tREmDsdp9vlHGda65q:
+    created: "2023-05-20T11:27:44.727267980-06:00"
+    modified: "2023-05-20T11:27:44.727267980-06:00"
+    title: 02-Defining-the-Process
+    path: 02-Defining-the-Process.md
