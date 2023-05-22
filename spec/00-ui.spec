@@ -1,4 +1,9 @@
 
+Agents:
+
+- User
+- App
+
 Feature: User Interface
 
   Scenario: recording a transaction
@@ -9,10 +14,9 @@ Feature: User Interface
     When    the date range is set
     Then    the presentation contains only transactions occuring in that range
 
-Feature: Webiew UI
+Feature: Timeline
 
-  Scenario: submitting an income form
-    Given   the user has entered information in the income form
-    When    the user clicks the submit button
-    Then    the transaction record contains an income entry with that information
+  Scenario: Timeline
+    When    a new transaction record is received
+    Then    the timeline
     

@@ -25,3 +25,7 @@ version = "0.3"
 features = [
     "HtmlInputElement",
 ]
+
+[dev-dependencies]
+quickcheck = "1"
+quickcheck_macros = "1"
