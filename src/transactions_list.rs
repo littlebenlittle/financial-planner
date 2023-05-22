@@ -16,16 +16,14 @@ pub fn transactions_list(props: &TransactionsListProps) -> Html {
     <section>
         <h3>{props.title.clone()}</h3>
         <ol>
-            {for props.data.transactions.iter().map(|(id, tr): (&TransactionId, &Transaction)| {
-                html!{
-                    <TransactionsListItem
-                        value={tr.value}
-                        kind={tr.kind.clone()}
-                        date={tr.date.clone()}
-                        id={id}
-                        delete_transaction={props.delete_transaction.clone()}
-                    />
-                }
+            {for props.data.transactions.iter().map(|tr| html!{
+                <TransactionsListItem
+                    value={tr.value}
+                    kind={tr.kind}
+                    date={tr.date}
+                    id={tr.id}
+                    delete_transaction={props.delete_transaction.clone()}
+                />
             })}
         </ol>
     </section>

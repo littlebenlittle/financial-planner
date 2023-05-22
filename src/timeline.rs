@@ -14,13 +14,14 @@ pub struct TimelineProps {
     pub data: Option<TimelineData>,
     pub title: String,
     pub canvas_id: String,
-    pub set_date_range: Callback<(Date, Date)>
+    pub set_date_range: Callback<(Date, Date)>,
 }
 
 #[function_component(Timeline)]
 pub fn timeline(props: &TimelineProps) -> Html {
     let canvas_id = props.canvas_id.clone();
-    let start_date_handle = 
+    let start_date_handle = use_state(String::new);
+    let end_date_handle = use_state(String::new);
 
     let on_start_date_change = {
         let start_date_handle = start_date_handle.clone();
@@ -34,7 +35,6 @@ pub fn timeline(props: &TimelineProps) -> Html {
         }
     };
 
-    let end_date_handle = use_state(String::new);
     let on_end_date_change = {
         let end_date_handle = end_date_handle.clone();
         move |e: Event| {
@@ -48,27 +48,29 @@ pub fn timeline(props: &TimelineProps) -> Html {
     };
 
     use_effect({
-        let mut start_date = (*start_date_handle).clone();
-        let mut end_date = (*end_date_handle).clone();
+        let start_date = (*start_date_handle).clone();
+        let end_date = (*end_date_handle).clone();
         let data = props.data.clone().unwrap_or_default();
+        let set_date_range = props.set_date_range.clone();
         move || {
-            if start_date.len() == 0 {
-                start_date = "2023-05-01".to_owned();
-            }
-            if end_date.len() == 0 {
-                end_date = "2023-06-01".to_owned();
-            }
-            match start_date.parse::<Date>() {
-                Err(e) => gloo_console::log!(format!("{e:?}")),
-                Ok(start_date) => match end_date.parse::<Date>() {
-                    Err(e) => gloo_console::log!(format!("{e:?}")),
-                    Ok(end_date) => {
-                        match draw_timeline(&canvas_id, data, start_date) {
-                            Err(e) => gloo_console::log!(format!("{e:?}")),
-                            _ => {}
-                        }
+            match (start_date.parse::<Date>(), end_date.parse::<Date>()) {
+                (Err(e1), Err(e2)) => {
+                    gloo_console::log!(format!("start date parse error: {e1:?}"));
+                    gloo_console::log!(format!("end date parse error: {e2:?}"));
+                }
+                (Err(e), Ok(_)) => {
+                    gloo_console::log!(format!("start date parse error: {e:?}"));
+                }
+                (Ok(_), Err(e)) => {
+                    gloo_console::log!(format!("end date parse error: {e:?}"));
+                }
+                (Ok(start_date), Ok(end_date)) => {
+                    set_date_range.emit((start_date, end_date));
+                    match draw_timeline(&canvas_id, data, start_date) {
+                        Err(e) => gloo_console::log!(format!("{e:?}")),
+                        _ => {}
                     }
-                },
+                }
             }
             || {}
         }
@@ -110,10 +112,10 @@ fn draw_timeline(
 
     let max = if let Some(value) = data
         .iter()
-        .map(|(income, expenses, balance)| income.max(expenses).max(balance))
+        .map(|v| v.income.max(v.expenses).max(v.balance))
         .max()
     {
-        math::round::floor(*value as f64 * 1.1, 1).max(100.0) as u32
+        math::round::floor(value as f64 * 1.1, 1).max(100.0) as u32
     } else {
         return Ok(());
     };
@@ -146,7 +148,7 @@ fn draw_timeline(
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, (b, i, e))| (start_date + Duration::days(n as i64), *i)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.income)),
             ),
     )?;
 
@@ -156,7 +158,7 @@ fn draw_timeline(
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, (b, i, e))| (start_date + Duration::days(n as i64), *e)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.expenses)),
             ),
     )?;
 
@@ -166,7 +168,7 @@ fn draw_timeline(
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, (b, i, e))| (start_date + Duration::days(n as i64), *b)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.balance)),
             ),
     )?;
 
