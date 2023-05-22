@@ -1,9 +1,9 @@
 mod app;
 mod date_summaries_list;
-mod state;
 mod timeline;
 mod transactions_form;
 mod transactions_list;
+mod app_state;
 
 use app::App;
 

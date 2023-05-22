@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::state::*;
+use crate::app_state::*;
 use chrono::{Duration, NaiveDate};
 use itertools::Itertools;
 use plotters::prelude::*;
@@ -14,15 +14,14 @@ pub struct TimelineProps {
     pub data: Option<TimelineData>,
     pub title: String,
     pub canvas_id: String,
-    pub set_start_date: Callback<Date>,
-    pub set_end_date: Callback<Date>,
+    pub set_date_range: Callback<(Date, Date)>
 }
 
 #[function_component(Timeline)]
 pub fn timeline(props: &TimelineProps) -> Html {
     let canvas_id = props.canvas_id.clone();
+    let start_date_handle = 
 
-    let start_date_handle = use_state(String::new);
     let on_start_date_change = {
         let start_date_handle = start_date_handle.clone();
         move |e: Event| {

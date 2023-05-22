@@ -1,4 +1,4 @@
-use crate::state::*;
+use crate::app_state::*;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;

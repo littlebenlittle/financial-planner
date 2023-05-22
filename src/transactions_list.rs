@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
-use crate::state::*;
+use crate::{app_state::*, app_state::TransactionsListData};
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct TransactionsListProps {
-    pub transactions: BTreeMap<TransactionId, Transaction>,
+    pub data: TransactionsListData,
     pub delete_transaction: Callback<TransactionId>,
     pub title: String,
 }
@@ -16,7 +16,7 @@ pub fn transactions_list(props: &TransactionsListProps) -> Html {
     <section>
         <h3>{props.title.clone()}</h3>
         <ol>
-            {for props.transactions.iter().map(|(id, tr): (&TransactionId, &Transaction)| {
+            {for props.data.transactions.iter().map(|(id, tr): (&TransactionId, &Transaction)| {
                 html!{
                     <TransactionsListItem
                         value={tr.value}

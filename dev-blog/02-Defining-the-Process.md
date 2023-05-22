@@ -35,3 +35,14 @@ Scenario: submitting an income entry form
     When    the user submits an Income Entry
     Then    the Transactions List contains the Income Entry
 ```
+
+### Notes
+
+- Underlying semantics is the log of input events
+- Do changes propogate immediately or on sync?
+- ~~Each component has a cached copy of the state~~
+- Each component owns a log of events from other components or environment
+- This might be too many logs for applications; current state is a "compressed"
+  version of log entries
+- Each component is specified by a state machine that ingests events,
+  updates its state, and emits other events
