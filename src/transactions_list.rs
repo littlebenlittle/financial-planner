@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
-
-use crate::{app_state::*, app_state::TransactionsListData};
+use crate::app_state::*;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]

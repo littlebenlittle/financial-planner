@@ -49,6 +49,13 @@ impl TimelineData {
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a DateSummary> {
         self.0.iter()
     }
+    /// returns the date of the earliest summary. Returns `None` if
+    /// list is empty.
+    pub fn start_date(&self) -> Option<Date> {
+        // if list is known to be sorted and non-empty, this is more efficient:
+        // `Some(self.0[0].date)`
+        self.iter().map(|s| s.date).min()
+    }
 }
 
 impl Default for TimelineData {
@@ -60,6 +67,14 @@ impl Default for TimelineData {
 #[derive(Debug, PartialEq, Clone)]
 pub struct TransactionsListData {
     pub transactions: Vec<Transaction>,
+}
+
+impl Default for TransactionsListData {
+    fn default() -> Self {
+        Self {
+            transactions: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -109,12 +124,12 @@ fn compute_timeline_data(actions: &Vec<Action>) -> TimelineData {
     //    of the value of every non-deleted income record ocurring before that date
     //    less the sum of the value of every non-deleted expense record ocurring before
     //    that date
-    unimplemented!()
+    Default::default()
 }
 
 fn compute_transactions_list_data(actions: &Vec<Action>) -> TransactionsListData {
     // Spec:
     // 1. Every non-deleted transaction is present in the data
     // 2. The data is sorted by the date of the transaction
-    unimplemented!()
+    Default::default()
 }

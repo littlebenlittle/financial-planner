@@ -1,6 +1,5 @@
-use crate::{app_state::{Date, Dollars}};
+use crate::app_state::{Date, Dollars};
 use yew::prelude::*;
-
 
 #[derive(Properties, PartialEq)]
 pub struct DateSummariesListProps {
@@ -48,4 +47,3 @@ pub fn date_summary_entry(props: &DateSummaryEntryProps) -> Html {
         </li>
     }
 }
-

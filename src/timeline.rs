@@ -2,7 +2,6 @@ use std::error::Error;
 
 use crate::app_state::*;
 use chrono::{Duration, NaiveDate};
-use itertools::Itertools;
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use wasm_bindgen::JsCast;
@@ -24,53 +23,45 @@ pub fn timeline(props: &TimelineProps) -> Html {
     let end_date_handle = use_state(String::new);
 
     let on_start_date_change = {
-        let start_date_handle = start_date_handle.clone();
+        let start_date = start_date_handle.clone();
+        let end_date = end_date_handle.clone();
+        let set_date_range = props.set_date_range.clone();
         move |e: Event| {
             if let Some(input) = e
                 .target()
                 .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
             {
-                start_date_handle.set(input.value());
+                start_date.set(input.value());
+                if let Some(range) = validate_dates(&*start_date, &*end_date) {
+                    set_date_range.emit(range)
+                }
             }
         }
     };
 
     let on_end_date_change = {
-        let end_date_handle = end_date_handle.clone();
+        let start_date = start_date_handle.clone();
+        let end_date = end_date_handle.clone();
+        let set_date_range = props.set_date_range.clone();
         move |e: Event| {
             if let Some(input) = e
                 .target()
                 .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
             {
-                end_date_handle.set(input.value());
+                end_date.set(input.value());
+                if let Some(range) = validate_dates(&*start_date, &*end_date) {
+                    set_date_range.emit(range)
+                }
             }
         }
     };
 
     use_effect({
-        let start_date = (*start_date_handle).clone();
-        let end_date = (*end_date_handle).clone();
         let data = props.data.clone().unwrap_or_default();
-        let set_date_range = props.set_date_range.clone();
         move || {
-            match (start_date.parse::<Date>(), end_date.parse::<Date>()) {
-                (Err(e1), Err(e2)) => {
-                    gloo_console::log!(format!("start date parse error: {e1:?}"));
-                    gloo_console::log!(format!("end date parse error: {e2:?}"));
-                }
-                (Err(e), Ok(_)) => {
-                    gloo_console::log!(format!("start date parse error: {e:?}"));
-                }
-                (Ok(_), Err(e)) => {
-                    gloo_console::log!(format!("end date parse error: {e:?}"));
-                }
-                (Ok(start_date), Ok(end_date)) => {
-                    set_date_range.emit((start_date, end_date));
-                    match draw_timeline(&canvas_id, data, start_date) {
-                        Err(e) => gloo_console::log!(format!("{e:?}")),
-                        _ => {}
-                    }
-                }
+            match draw_timeline(&canvas_id, data) {
+                Err(e) => gloo_console::log!(format!("{e:?}")),
+                _ => {}
             }
             || {}
         }
@@ -98,12 +89,31 @@ pub fn timeline(props: &TimelineProps) -> Html {
     }
 }
 
+fn validate_dates(start_date: &str, end_date: &str) -> Option<(Date, Date)> {
+    match (start_date.parse::<Date>(), end_date.parse::<Date>()) {
+        (Err(e1), Err(e2)) => {
+            gloo_console::log!(format!("start date parse error: {e1:?}"));
+            gloo_console::log!(format!("end date parse error: {e2:?}"));
+            None
+        }
+        (Err(e), Ok(_)) => {
+            gloo_console::log!(format!("start date parse error: {e:?}"));
+            None
+        }
+        (Ok(_), Err(e)) => {
+            gloo_console::log!(format!("end date parse error: {e:?}"));
+            None
+        }
+        (Ok(start_date), Ok(end_date)) => Some((start_date, end_date))
+    }
+}
+
 // TODO: this method should be a view; computations performed by State object
-fn draw_timeline(
-    canvas_id: &str,
-    data: TimelineData,
-    start_date: Date,
-) -> Result<(), Box<dyn Error>> {
+fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Error>> {
+    let start_date = match data.start_date() {
+        Some(d) => d,
+        _ => return Ok(())
+    };
     let end_date = start_date + Duration::days(data.len() as i64);
     let backend = CanvasBackend::new(canvas_id).expect("cannot find canvas");
     let root = backend.into_drawing_area();
