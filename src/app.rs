@@ -55,7 +55,6 @@ pub fn app() -> Html {
                 canvas_id={"my_canvas"}
                 data={state.timeline_data()}
                 set_date_range={set_date_range}
-                histogram={false}
             />
             <TransactionsList
                 title={"Transactions List"}

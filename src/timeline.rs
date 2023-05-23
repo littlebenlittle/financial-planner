@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, str::FromStr};
 
 use crate::app_state::*;
 use chrono::{Duration, NaiveDate};
@@ -14,13 +14,13 @@ pub struct TimelineProps {
     pub title: String,
     pub canvas_id: String,
     pub set_date_range: Callback<(Date, Date)>,
-    pub histogram: bool,
 }
 
 #[function_component(Timeline)]
 pub fn timeline(props: &TimelineProps) -> Html {
     let start_date_handle = use_state(String::new);
     let end_date_handle = use_state(String::new);
+    let view_type_handle = use_state_eq(|| ViewType::Text);
 
     let on_start_date_change = {
         let start_date = start_date_handle.clone();
@@ -55,26 +55,59 @@ pub fn timeline(props: &TimelineProps) -> Html {
             }
         }
     };
-
+    
+    let on_view_type_change = {
+        let view_type_handle = view_type_handle.clone();
+        move |e: Event| {
+            if let Some(input) = e
+                .target()
+                .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
+            {
+                if let Ok(view_type) = input.value().parse::<ViewType>() {
+                    view_type_handle.set(view_type);
+                } else {
+                    gloo_console::log!(format!("could not parse view type"))
+                }
+            }
+        }
+    };
+    
     let start_date = (*start_date_handle).clone();
     let end_date = (*end_date_handle).clone();
+    let view_type = (*view_type_handle).clone();
     html! {
     <section>
         <h3>{props.title.clone()}</h3>
+        <p>{"View Type: "}</p>
+        <input
+            type="radio"
+            id="text"
+            name="view_type"
+            value="text"
+            onchange={on_view_type_change.clone()}
+        />
+        <label for="text">{"Text"}</label>
+        <input
+            type="radio"
+            id="histogram"
+            name="view_type"
+            value="histogram"
+            onchange={on_view_type_change.clone()}
+        />
+        <label for="histogram">{"Histogram"}</label>
         {if let Some(data) = props.data.clone() {
-            if props.histogram {
-                html!{
-                <HistogramView
-                    canvas_id={"my_canvas"}
-                    data={props.data.clone().unwrap_or_default()}
-                />
-                }
-            } else {
-                html!{
-                <DateSummaryView
-                    data={data}
-                />
-                }
+            match view_type {
+                ViewType::Histogram => html!{
+                    <HistogramView
+                        canvas_id={"my_canvas"}
+                        data={props.data.clone().unwrap_or_default()}
+                    />
+                },
+                ViewType::Text => html!{
+                    <DateSummaryView
+                        data={data}
+                    />
+                },
             }
         } else {
             html!{}
@@ -90,6 +123,23 @@ pub fn timeline(props: &TimelineProps) -> Html {
             value={end_date}
         />
     </section>
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum ViewType {
+    Text,
+    Histogram,
+}
+
+impl FromStr for ViewType {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "text" => Ok(Self::Text),
+            "histogram" => Ok(Self::Histogram),
+            _ => Err(())
+        }
     }
 }
 
@@ -128,13 +178,18 @@ pub struct DateSummaryViewProps {
 #[function_component(DateSummaryView)]
 pub fn histogram(props: &DateSummaryViewProps) -> Html {
     html! {
+    <>
+    <p><b>{"Date Summaries"}</b></p>
+    <hr />
     {for props.data.iter().map(|summary: &DateSummary| html!{
         <>
         <p>{"Date: "}{summary.date}</p>
         <p>{"Income: "}{summary.income}</p>
         <p>{"Expenses: "}{summary.expenses}</p>
+        <hr />
         </>
     })}
+    </>
     }
 }
 
