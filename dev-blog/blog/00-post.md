@@ -2,6 +2,7 @@
 title: A Post
 date: 2023-01-01
 id: 123abc
+template: post
 ---
 
 # A Post!
