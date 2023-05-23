@@ -29,11 +29,10 @@ jobs:
       run: |
         wget https://github.com/littlebenlittle/site-gen/releases/download/actions-test-00/site-gen
         chmod +x ./site-gen
-        mv site-gen ~/.local/bin
     - name: Build dev blog
       run: |
         cd dev-blog
-        RUST_LOG=debug site-gen
+        RUST_LOG=debug ../site-gen
     - name: Upload pages artifact
       uses: actions/upload-pages-artifact@v1
       with:
