@@ -1,5 +1,6 @@
 use itertools::Itertools;
-use std::{rc::Rc, iter::FlatMap};
+use std::{iter::FlatMap, rc::Rc};
+use wrapper::Wrapper;
 use yew::Reducible;
 
 // #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
@@ -112,17 +113,16 @@ impl Action {
     pub fn is_create(&self) -> bool {
         match self {
             Self::CreateTransaction(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn is_delete(&self) -> bool {
         match self {
             Self::DeleteTransaction(_) => true,
-            _ => false
+            _ => false,
         }
     }
-
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -155,7 +155,7 @@ impl State {
     }
 }
 
-fn compute_timeline_data(actions: &Vec<Action>) -> TimelineData {
+fn compute_timeline_data(log: &Vec<Action>) -> TimelineData {
     // Spec:
     // 1. Every date in range is part of the data
     // 2. The data is sorted by the date of the transaction
@@ -167,15 +167,43 @@ fn compute_timeline_data(actions: &Vec<Action>) -> TimelineData {
     //    of the value of every non-deleted income record ocurring before that date
     //    less the sum of the value of every non-deleted expense record ocurring before
     //    that date
+    let (start_date, end_date) = compute_date_range(log);
+    let mut data = TimelineData::default();
+    let mut balance = 0;
+    for date in start_date.iter_days().take_while(|d| d <= &end_date) {
+        let income = compute_income_on(&log, &date);
+        let expenses = compute_expenses_on(&log, &date);
+        balance += income - expenses;
+        data.0.push(DateSummary {
+            date,
+            income,
+            expenses,
+            balance,
+        });
+    }
+    data
+}
+
+fn compute_date_range(log: &Vec<Action>) -> (Date, Date) {
     Default::default()
 }
 
-fn compute_transactions_list_data(actions: &Vec<Action>) -> TransactionsListData {
+fn compute_income_on(log: &Vec<Action>, date: &Date) -> Dollars {
+    Default::default()
+}
+
+fn compute_expenses_on(log: &Vec<Action>, date: &Date) -> Dollars {
+    Default::default()
+}
+
+fn compute_transactions_list_data(log: &Vec<Action>) -> TransactionsListData {
     // Spec:
     // 1. Every non-deleted transaction is present in the data
     // 2. No deleted transaction is present in the data
     // 3. The data is sorted by the date of the transaction
-    Default::default()
+    let mut transactions = compute_transactions(log);
+    transactions.sort_by(|a, b| a.date.cmp(&b.date));
+    TransactionsListData { transactions }
 }
 
 fn compute_transactions(log: &Vec<Action>) -> Vec<Transaction> {
@@ -288,17 +316,14 @@ mod test {
     fn test_compute_transactions_1(log: Vec<Action>) -> bool {
         let transactions = compute_transactions(&log);
         if transactions.is_empty() {
-            match for_all_eventually(
-                &log,
-                Action::is_create,
-                Action::is_delete,
-                |a, b| a.try_into_id().unwrap() == b.try_into_id().unwrap(),
-            ) {
+            match for_all_eventually(&log, Action::is_create, Action::is_delete, |a, b| {
+                a.try_into_id().unwrap() == b.try_into_id().unwrap()
+            }) {
                 Some(i) => {
                     println!("failure at index {i}");
                     return false;
                 }
-                None => return true
+                None => return true,
             };
         }
         true
@@ -310,24 +335,19 @@ mod test {
     fn test_compute_transactions_2(log: Vec<Action>) -> bool {
         let transactions = compute_transactions(&log);
         let ids = transactions.iter().map(|a| a.id).collect_vec();
-        match for_all_never(
-            &log,
-            Action::is_create,
-            Action::is_delete,
-            |a, b| {
-                let a_id = a.try_into_id().unwrap();
-                let b_id = b.try_into_id().unwrap();
-                ids.contains(a_id) && a_id == b_id
-            }
-        ) {
+        match for_all_never(&log, Action::is_create, Action::is_delete, |a, b| {
+            let a_id = a.try_into_id().unwrap();
+            let b_id = b.try_into_id().unwrap();
+            ids.contains(a_id) && a_id == b_id
+        }) {
             Some((i, j)) => {
                 println!("failure at indices {i}, {j}");
                 false
             }
-            None => true
+            None => true,
         }
     }
-    
+
     fn for_all_eventually<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> Option<usize>
     where
         P: Fn(&Action) -> bool,
