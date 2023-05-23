@@ -1,6 +1,5 @@
-use chrono::Duration;
 use itertools::Itertools;
-use std::{ops::Add, rc::Rc, str::FromStr};
+use std::{rc::Rc, iter::FlatMap};
 use yew::Reducible;
 
 // #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
@@ -102,18 +101,28 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn try_into_create_id(&self) -> Option<TransactionId> {
+    pub fn try_into_id(&self) -> Option<&TransactionId> {
         match self {
-            Self::CreateTransaction(tr) => Some(tr.id),
+            Self::CreateTransaction(tr) => Some(&tr.id),
+            Self::DeleteTransaction(id) => Some(id),
             _ => None,
         }
     }
-    pub fn try_into_delete_id(&self) -> Option<TransactionId> {
+
+    pub fn is_create(&self) -> bool {
         match self {
-            Self::DeleteTransaction(id) => Some(*id),
-            _ => None,
+            Self::CreateTransaction(_) => true,
+            _ => false
         }
     }
+
+    pub fn is_delete(&self) -> bool {
+        match self {
+            Self::DeleteTransaction(_) => true,
+            _ => false
+        }
+    }
+
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -174,7 +183,6 @@ fn compute_transactions(log: &Vec<Action>) -> Vec<Transaction> {
     // 1. Every non-deleted transaction is present in the data
     // 2. No deleted transaction is present in the data
     let mut transactions = Vec::<Transaction>::new();
-    let mut id_iter = 0..;
     for action in log {
         match action {
             Action::DeleteTransaction(id) => {
@@ -188,7 +196,7 @@ fn compute_transactions(log: &Vec<Action>) -> Vec<Transaction> {
             _ => {}
         }
     }
-    Default::default()
+    transactions
 }
 
 #[cfg(test)]
@@ -246,9 +254,11 @@ mod test {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             Transaction {
                 value: Dollars::arbitrary(g),
-                kind: *g.choose(&[TransactionKind::Income, TransactionKind::Expense]).unwrap(),
+                kind: *g
+                    .choose(&[TransactionKind::Income, TransactionKind::Expense])
+                    .unwrap(),
                 date: DateWrapper::arbitrary(g).0,
-                id: TransactionId::arbitrary(g),
+                id: arbitrary_range(g, 1..50).unwrap(),
             }
         }
     }
@@ -278,32 +288,80 @@ mod test {
     fn test_compute_transactions_1(log: Vec<Action>) -> bool {
         let transactions = compute_transactions(&log);
         if transactions.is_empty() {
-            return for_all_eventually(
+            match for_all_eventually(
                 &log,
-                |a| a.try_into_create_id(),
-                |b| b.try_into_delete_id(),
-                |a_id, b_id| a_id == b_id,
-            )
+                Action::is_create,
+                Action::is_delete,
+                |a, b| a.try_into_id().unwrap() == b.try_into_id().unwrap(),
+            ) {
+                Some(i) => {
+                    println!("failure at index {i}");
+                    return false;
+                }
+                None => return true
+            };
         }
         true
     }
 
-    fn for_all_eventually<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> bool
+    // 2. If a transaction appears in the list, then there
+    //    is no later action that deletes that transaction
+    #[quickcheck]
+    fn test_compute_transactions_2(log: Vec<Action>) -> bool {
+        let transactions = compute_transactions(&log);
+        let ids = transactions.iter().map(|a| a.id).collect_vec();
+        match for_all_never(
+            &log,
+            Action::is_create,
+            Action::is_delete,
+            |a, b| {
+                let a_id = a.try_into_id().unwrap();
+                let b_id = b.try_into_id().unwrap();
+                ids.contains(a_id) && a_id == b_id
+            }
+        ) {
+            Some((i, j)) => {
+                println!("failure at indices {i}, {j}");
+                false
+            }
+            None => true
+        }
+    }
+    
+    fn for_all_eventually<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> Option<usize>
     where
-        P: Fn(&Action) -> Option<TransactionId>,
-        Q: Fn(&Action) -> Option<TransactionId>,
-        R: Fn(&TransactionId, &TransactionId) -> bool,
+        P: Fn(&Action) -> bool,
+        Q: Fn(&Action) -> bool,
+        R: Fn(&Action, &Action) -> bool,
     {
-        let firsts = seq.iter().filter_map(p).enumerate().peekable();
-        let seconds = seq.iter().filter_map(q).enumerate();
+        let firsts = seq.iter().enumerate().filter(|(i, a)| p(a)).peekable();
+        let seconds = seq.iter().enumerate().filter(|(i, b)| q(b));
         for (i, f) in firsts {
             for (j, s) in seconds {
                 if i < j && r(&f, &s) {
-                    continue
+                    continue;
                 }
             }
-            return false
+            return Some(i);
         }
-        return true
+        return None;
+    }
+
+    fn for_all_never<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> Option<(usize, usize)>
+    where
+        P: Fn(&Action) -> bool,
+        Q: Fn(&Action) -> bool,
+        R: Fn(&Action, &Action) -> bool,
+    {
+        let firsts = seq.iter().enumerate().filter(|(i, a)| p(a)).peekable();
+        let seconds = seq.iter().enumerate().filter(|(i, b)| q(b)).collect_vec();
+        for (i, f) in firsts {
+            for (j, s) in seconds.as_slice() {
+                if i < *j && r(&f, &s) {
+                    return Some((i, *j));
+                }
+            }
+        }
+        return None;
     }
 }

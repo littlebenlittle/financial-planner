@@ -46,3 +46,15 @@ Scenario: submitting an income entry form
   version of log entries
 - Each component is specified by a state machine that ingests events,
   updates its state, and emits other events
+  
+### Temoporal Specification
+
+LTL lets us specify predicates over a linear (non-branching) sequence of evets.
+
+For this app, the LTL formulas I need include
+
+"For all P eventually Q", after some event that matches P, there is eventually an event that matches Q
+
+"For all P never Q", after some event matches P, there are no subsequent events matching Q
+
+The complexity of model-checking formulas like this is O(n^2) for n the length of the model instance, i.e. number of events in the sequence.
