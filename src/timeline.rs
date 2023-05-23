@@ -14,11 +14,11 @@ pub struct TimelineProps {
     pub title: String,
     pub canvas_id: String,
     pub set_date_range: Callback<(Date, Date)>,
+    pub histogram: bool,
 }
 
 #[function_component(Timeline)]
 pub fn timeline(props: &TimelineProps) -> Html {
-    let canvas_id = props.canvas_id.clone();
     let start_date_handle = use_state(String::new);
     let end_date_handle = use_state(String::new);
 
@@ -56,25 +56,29 @@ pub fn timeline(props: &TimelineProps) -> Html {
         }
     };
 
-    use_effect({
-        let data = props.data.clone().unwrap_or_default();
-        move || {
-            match draw_timeline(&canvas_id, data) {
-                Err(e) => gloo_console::log!(format!("{e:?}")),
-                _ => {}
-            }
-            || {}
-        }
-    });
     let start_date = (*start_date_handle).clone();
     let end_date = (*end_date_handle).clone();
     html! {
     <section>
         <h3>{props.title.clone()}</h3>
-        <canvas
-            id={props.canvas_id.clone()}
-            style={"width: 80%; height: auto; max-width: 500px;"}
-        />
+        {if let Some(data) = props.data.clone() {
+            if props.histogram {
+                html!{
+                <HistogramView
+                    canvas_id={"my_canvas"}
+                    data={props.data.clone().unwrap_or_default()}
+                />
+                }
+            } else {
+                html!{
+                <DateSummaryView
+                    data={data}
+                />
+                }
+            }
+        } else {
+            html!{}
+        }}
         <p>{"Start Date: "}</p>
         <input onchange={on_start_date_change}
             type="date"
@@ -86,6 +90,51 @@ pub fn timeline(props: &TimelineProps) -> Html {
             value={end_date}
         />
     </section>
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct HistogramViewProps {
+    pub canvas_id: String,
+    pub data: TimelineData,
+}
+
+#[function_component(HistogramView)]
+pub fn histogram(props: &HistogramViewProps) -> Html {
+    use_effect({
+        let data = props.data.clone();
+        let canvas_id = props.canvas_id.clone();
+        move || {
+            match draw_timeline(&canvas_id, data) {
+                Err(e) => gloo_console::log!(format!("{e:?}")),
+                _ => {}
+            }
+            || {}
+        }
+    });
+    html! {
+        <canvas
+            id={props.canvas_id.clone()}
+            style={"width: 80%; height: auto; max-width: 500px;"}
+        />
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct DateSummaryViewProps {
+    data: TimelineData,
+}
+
+#[function_component(DateSummaryView)]
+pub fn histogram(props: &DateSummaryViewProps) -> Html {
+    html! {
+    {for props.data.iter().map(|summary: &DateSummary| html!{
+        <>
+        <p>{"Date: "}{summary.date}</p>
+        <p>{"Income: "}{summary.income}</p>
+        <p>{"Expenses: "}{summary.expenses}</p>
+        </>
+    })}
     }
 }
 
@@ -104,7 +153,7 @@ fn validate_dates(start_date: &str, end_date: &str) -> Option<(Date, Date)> {
             gloo_console::log!(format!("end date parse error: {e:?}"));
             None
         }
-        (Ok(start_date), Ok(end_date)) => Some((start_date, end_date))
+        (Ok(start_date), Ok(end_date)) => Some((start_date, end_date)),
     }
 }
 
@@ -112,7 +161,7 @@ fn validate_dates(start_date: &str, end_date: &str) -> Option<(Date, Date)> {
 fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Error>> {
     let start_date = match data.start_date() {
         Some(d) => d,
-        _ => return Ok(())
+        _ => return Ok(()),
     };
     let end_date = start_date + Duration::days(data.len() as i64);
     let backend = CanvasBackend::new(canvas_id).expect("cannot find canvas");
