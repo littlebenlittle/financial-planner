@@ -2,7 +2,7 @@ use crate::app_state::*;
 use crate::components::*;
 use yew::prelude::*;
 
-use TransactionKind::{Income, Expense};
+use TransactionKind::{Expense, Income};
 
 #[function_component(App)]
 pub fn app() -> Html {
@@ -50,6 +50,11 @@ pub fn app() -> Html {
 
     html! {
         <main>
+            <p><b>{concat!{
+                "This app is for demonstration purposes only. It is not intended to secure ",
+                "private information. Any information entered into this app should be ",
+                "considered effectively public information.",
+            }}</b></p>
             <Timeline
                 title={"Timeline"}
                 canvas_id={"my_canvas"}
