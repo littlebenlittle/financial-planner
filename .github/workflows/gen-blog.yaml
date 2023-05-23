@@ -28,6 +28,7 @@ jobs:
     - name: Get `site-gen`
       run: |
         wget https://github.com/littlebenlittle/site-gen/releases/download/actions-test-00/site-gen
+        chmod +x ./site-gen
         mv site-gen ~/.local/bin
     - name: Build dev blog
       run: |
