@@ -1,0 +1,39 @@
+name: Site Gen
+
+on:
+  push:
+    branches: [ $default-branch, "github-actions" ]
+  pull_request:
+    branches: [ $default-branch ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Get `site-gen`
+      run: |
+        git clone https://github.com/littlebenlittle/site-gen.git
+        cargo install --path ./site-gen
+    - name: Build dev blog
+      run: |
+        cd dev-blog
+        RUST_LOG=debug site-gen
+    - name: Upload pages artifact
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: ./dev-blog/_site
