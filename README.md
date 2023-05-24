@@ -18,3 +18,7 @@ development practices. In general I follow this process:
 2. Blocking: I break my sketch down into major components
 3. Specifying: I define the rules for how each component works
 4. Verifying: I define test cases for each of the rules
+
+## See the app
+
+The app is hosted using Github Pages: https://littlebenlittle.github.io/financial-planner
