@@ -39,6 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       CARGO_TERM_COLOR: always
+    steps:
     - name: install toolchain
       uses: actions-rs/toolchain@v1
       with:
