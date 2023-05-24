@@ -19,6 +19,25 @@ tool and person. What another person might do with that tool is irrelevant--what
 can <strong>you</strong> do with it?</p>
 </blockquote>
 
+<h2 id='the_tool:_rust_and_yew'>The Tool: Rust and Yew</h2>
+
+<p>Yew is a reactive framework for the rust programming language. It allows
+developers to make use of rust&#8217;s powerful static type checker to build robust
+front-end applications. The explicit memory management of rust can help identify
+and debug performance problems that may be obfuscated by other frontend
+frameworks written in JavaScript.</p>
+
+<p>Building the financial planner application with rust and Yew started with
+exploring what these tools can do. After some fiddling, I was able to create
+a UI that enables the user to submit income and expense forms that are then
+recorded in the transaction log. I also configure a histogram that plotted daily
+income and expnses in a given date range.</p>
+
+<p>At this point the app was mostly doing what I expected with a few hiccups. These
+hiccups are when I really started to need to think about <em>what</em> each compoment
+of the UI was supposed to do and how it interacts with the computations being
+performed in the background.</p>
+
 
 </main>
 </body>

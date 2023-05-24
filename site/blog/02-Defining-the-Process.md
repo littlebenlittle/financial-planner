@@ -11,51 +11,95 @@ template: post
 
 > At this stage we know what we *might* build. It's time to start defining that
   thing in a language that is amenable to the hardware we have available.
-  
-This is much like the measurement phase of painting. Certain rules must be met
-for the painting to be compatible with our intuition about how 3D shapes work.
-  
-## How can we specify state machines?
 
-A state machine can be specified as a relation between predicates over input
-streams and predicates over output streams.
+## How can we specify UIs?
 
-### UI Specification
+One model for UIs is that the user provides a sequence of input events. The
+events then form a log and queries about the state of the application reduce to
+queries about the state of the log.
 
-In this case the input stream carries *UI Actions* and the output stream carries
-*UI States*. When a user inputs a sequence of UI actions that satisfies some
-predicate, the UI will produce a sequence of states that satisfy some other
-predicate.
+For example, a user might input:
 
-For example, in the Finance Application we expect the Transaction List to update
-whenver the user submits a new transaction form. This can expressed as
-
-```feature
-Scenario: submitting an income entry form
-    Given   the page has loaded
-    When    the user submits an Income Entry
-    Then    the Transactions List contains the Income Entry
+```
+ReportTransaction:
+  date: 2023-01-01
+  value: 150
+  kind: income
+  id: 1
+ReportTransaction:
+  date: 2023-01-05
+  value: 100
+  kind: Expense
+  id: 2
+DeleteTransaction:
+  id: 2
+ReportTransaction:
+  date: 2023-01-05
+  value: 120
+  kind: Expense
+  id: 2
 ```
 
-### Notes
+We might then ask: What are the entries in the list of transactions after this
+sequence of events?
 
-- Underlying semantics is the log of input events
-- Do changes propogate immediately or on sync?
-- ~~Each component has a cached copy of the state~~
-- Each component owns a log of events from other components or environment
-- This might be too many logs for applications; current state is a "compressed"
-  version of log entries
-- Each component is specified by a state machine that ingests events,
-  updates its state, and emits other events
+Initially the user reports an income of 150 on 1st of January and then an
+expense of 100 on the 5th of Januay. Then delete the expense transaction and
+report another expense. So the transaction log *should* contain the first
+transaction and the last transaction, but not the one that was deleted.
+
+```
+Transactions:
+- date: 2023-01-01
+  value: 150
+  kind: income
+  id: 1
+- date: 2023-01-05
+  value: 120
+  kind: Expense
+  id: 2
+```
+
+This is a specific instance of a general rule:
+
+> The transaction list should contain every non-deleted transaction and no
+  deleted transaction.
+
+So how do we formally specify this intuitive rule?
+
+## Semantics of Event-Driven Archicitures
+
+The semantics of a specification tell us the *meaning*, that is how the 
+properties of a system's input relate to properties of the system's output.
+In this case the input is an ordered sequence of user events that form a log
+and the output is the sequence of UI states that the application goes through
+as these inputs are processed. As specification engineers, our job is to relate
+logical facts about the log to logical facts about the sequence UI states.
+
+So how do we transalate our above example into a language about sequences of
+user input and sequences of UI states? Consider the following definitions:
+
+- Deleted transaction: A "report transaction" event that is followed by
+  a delete transaction event with the same transaction id
+- Non-deleted transaction: A "report transaction" event that is NOT followed by
+  a delete transaction event with the same transaction id
   
-### Temoporal Specification
+So our specification looks like:
 
-LTL lets us specify predicates over a linear (non-branching) sequence of evets.
+- For every "report transaction" event with "id=X", if there is NO later
+  "delete transaction" event with "id=X" then the transaction with "id=X"
+  is in transaction list
+- For every "report transaction" event with "id=X", if there is SOME later
+  "delete transaction" event with "id=X" then the transaction with "id=X"
+  is NOT in transaction list
 
-For this app, the LTL formulas I need include
+This is an example of a specification for how the Transaction List should
+behave. We can then generate sequences of user actions, run them through our
+Transaction List generation logic, and test if our implementation matches
+the specification.
 
-"For all P eventually Q", after some event that matches P, there is eventually an event that matches Q
-
-"For all P never Q", after some event matches P, there are no subsequent events matching Q
-
-The complexity of model-checking formulas like this is O(n^2) for n the length of the model instance, i.e. number of events in the sequence.
+This is not a complete specifcation by any means. What if a user tries to create
+two transactions with same id? What if a user deletes a transaction with an id
+that hasn't been created yet? The more questions like these that we can answer,
+the more constrained our implementation will be and the fewer "unexpected"
+results we will get!

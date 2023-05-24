@@ -14,63 +14,110 @@
 
 <blockquote>
 <p>At this stage we know what we <em>might</em> build. It&#8217;s time to start defining that
-thing in a language that is amenable to the hardware we have available.
-<br />This is much like the measurement phase of painting. Certain rules must be met
-for the painting to be compatible with our intuition about how 3D shapes work.
-<br /></p>
-
-<h2 id='how_can_we_specify_state_machines?'>How can we specify state machines?</h2>
+thing in a language that is amenable to the hardware we have available.</p>
 </blockquote>
 
-<p>A state machine can be specified as a relation between predicates over input
-streams and predicates over output streams.</p>
+<h2 id='how_can_we_specify_uis?'>How can we specify UIs?</h2>
 
-<h3 id='ui_specification'>UI Specification</h3>
+<p>One model for UIs is that the user provides a sequence of input events. The
+events then form a log and queries about the state of the application reduce to
+queries about the state of the log.</p>
 
-<p>In this case the input stream carries <em>UI Actions</em> and the output stream carries
-<em>UI States</em>. When a user inputs a sequence of UI actions that satisfies some
-predicate, the UI will produce a sequence of states that satisfy some other
-predicate.</p>
+<p>For example, a user might input:</p>
 
-<p>For example, in the Finance Application we expect the Transaction List to update
-whenver the user submits a new transaction form. This can expressed as</p>
+<pre><code>ReportTransaction:
+  date: 2023-01-01
+  value: 150
+  kind: income
+  id: 1
+ReportTransaction:
+  date: 2023-01-05
+  value: 100
+  kind: Expense
+  id: 2
+DeleteTransaction:
+  id: 2
+ReportTransaction:
+  date: 2023-01-05
+  value: 120
+  kind: Expense
+  id: 2</code></pre>
 
-<pre><code class="language-feature">Scenario: submitting an income entry form
-    Given   the page has loaded
-    When    the user submits an Income Entry
-    Then    the Transactions List contains the Income Entry</code></pre>
+<p>We might then ask: What are the entries in the list of transactions after this
+sequence of events?</p>
 
-<h3 id='notes'>Notes</h3>
+<p>Initially the user reports an income of 150 on 1st of January and then an
+expense of 100 on the 5th of Januay. Then delete the expense transaction and
+report another expense. So the transaction log <em>should</em> contain the first
+transaction and the last transaction, but not the one that was deleted.</p>
+
+<pre><code>Transactions:
+- date: 2023-01-01
+  value: 150
+  kind: income
+  id: 1
+- date: 2023-01-05
+  value: 120
+  kind: Expense
+  id: 2</code></pre>
+
+<p>This is a specific instance of a general rule:</p>
+
+<blockquote>
+<p>The transaction list should contain every non-deleted transaction and no
+deleted transaction.</p>
+</blockquote>
+
+<p>So how do we formally specify this intuitive rule?</p>
+
+<h2 id='semantics_of_event-driven_archicitures'>Semantics of Event-Driven Archicitures</h2>
+
+<p>The semantics of a specification tell us the <em>meaning</em>, that is how the
+properties of a system&#8217;s input relate to properties of the system&#8217;s output.
+In this case the input is an ordered sequence of user events that form a log
+and the output is the sequence of UI states that the application goes through
+as these inputs are processed. As specification engineers, our job is to relate
+logical facts about the log to logical facts about the sequence UI states.</p>
+
+<p>So how do we transalate our above example into a language about sequences of
+user input and sequences of UI states? Consider the following definitions:</p>
 
 <ul>
-<li>Underlying semantics is the log of input events</li>
-
-<li>Do changes propogate immediately or on sync?</li>
-
-<li>~~Each component has a cached copy of the state~~</li>
-
-<li>Each component owns a log of events from other components or environment</li>
-
-<li>This might be too many logs for applications; current state is a &quot;compressed&quot;
-version of log entries</li>
+<li>
+<p>Deleted transaction: A &quot;report transaction&quot; event that is followed by
+a delete transaction event with the same transaction id</p>
+</li>
 
 <li>
-<p>Each component is specified by a state machine that ingests events,
-updates its state, and emits other events</p>
+<p>Non-deleted transaction: A &quot;report transaction&quot; event that is NOT followed by
+a delete transaction event with the same transaction id</p>
 
-<h3 id='temoporal_specification'>Temoporal Specification</h3>
+<p>So our specification looks like:</p>
+</li>
+
+<li>
+<p>For every &quot;report transaction&quot; event with &quot;id=X&quot;, if there is NO later
+&quot;delete transaction&quot; event with &quot;id=X&quot; then the transaction with &quot;id=X&quot;
+is in transaction list</p>
+</li>
+
+<li>
+<p>For every &quot;report transaction&quot; event with &quot;id=X&quot;, if there is SOME later
+&quot;delete transaction&quot; event with &quot;id=X&quot; then the transaction with &quot;id=X&quot;
+is NOT in transaction list</p>
 </li>
 </ul>
 
-<p>LTL lets us specify predicates over a linear (non-branching) sequence of evets.</p>
+<p>This is an example of a specification for how the Transaction List should
+behave. We can then generate sequences of user actions, run them through our
+Transaction List generation logic, and test if our implementation matches
+the specification.</p>
 
-<p>For this app, the LTL formulas I need include</p>
-
-<p>&quot;For all P eventually Q&quot;, after some event that matches P, there is eventually an event that matches Q</p>
-
-<p>&quot;For all P never Q&quot;, after some event matches P, there are no subsequent events matching Q</p>
-
-<p>The complexity of model-checking formulas like this is O(n^2) for n the length of the model instance, i.e. number of events in the sequence.</p>
+<p>This is not a complete specifcation by any means. What if a user tries to create
+two transactions with same id? What if a user deletes a transaction with an id
+that hasn&#8217;t been created yet? The more questions like these that we can answer,
+the more constrained our implementation will be and the fewer &quot;unexpected&quot;
+results we will get!</p>
 
 
 </main>
