@@ -2,3 +2,4 @@ target: docs/
 source: ./site
 blog: ./site/blog
 templates: ./site/templates
+public_url: ./
