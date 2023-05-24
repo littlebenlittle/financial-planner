@@ -2,74 +2,76 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title></title>
-    <link rel="stylesheet" href="/index-597d90855083f957.css">
+    <title>Defining the Process</title>
+    <link rel="stylesheet" href="">
 </head>
 <body>
 <main>
-    &lt;h1 id&#x3D;&#x27;{{_meta.title}}&#x27;&gt;{{ meta.title}}&lt;/h1&gt;
 
-&lt;h3 id&#x3D;&#x27;quick_summary&#x27;&gt;Quick Summary&lt;/h3&gt;
+<h1 id='defining_the_process'>Defining the Process</h1>
 
-&lt;blockquote&gt;
-&lt;p&gt;At this stage we know what we &lt;em&gt;might&lt;/em&gt; build. It&amp;#8217;s time to start defining that
+<h3 id='quick_summary'>Quick Summary</h3>
+
+<blockquote>
+<p>At this stage we know what we <em>might</em> build. It&#8217;s time to start defining that
 thing in a language that is amenable to the hardware we have available.
-&lt;br /&gt;This is much like the measurement phase of painting. Certain rules must be met
+<br />This is much like the measurement phase of painting. Certain rules must be met
 for the painting to be compatible with our intuition about how 3D shapes work.
-&lt;br /&gt;&lt;/p&gt;
+<br /></p>
 
-&lt;h2 id&#x3D;&#x27;how_can_we_specify_state_machines?&#x27;&gt;How can we specify state machines?&lt;/h2&gt;
-&lt;/blockquote&gt;
+<h2 id='how_can_we_specify_state_machines?'>How can we specify state machines?</h2>
+</blockquote>
 
-&lt;p&gt;A state machine can be specified as a relation between predicates over input
-streams and predicates over output streams.&lt;/p&gt;
+<p>A state machine can be specified as a relation between predicates over input
+streams and predicates over output streams.</p>
 
-&lt;h3 id&#x3D;&#x27;ui_specification&#x27;&gt;UI Specification&lt;/h3&gt;
+<h3 id='ui_specification'>UI Specification</h3>
 
-&lt;p&gt;In this case the input stream carries &lt;em&gt;UI Actions&lt;/em&gt; and the output stream carries
-&lt;em&gt;UI States&lt;/em&gt;. When a user inputs a sequence of UI actions that satisfies some
+<p>In this case the input stream carries <em>UI Actions</em> and the output stream carries
+<em>UI States</em>. When a user inputs a sequence of UI actions that satisfies some
 predicate, the UI will produce a sequence of states that satisfy some other
-predicate.&lt;/p&gt;
+predicate.</p>
 
-&lt;p&gt;For example, in the Finance Application we expect the Transaction List to update
-whenver the user submits a new transaction form. This can expressed as&lt;/p&gt;
+<p>For example, in the Finance Application we expect the Transaction List to update
+whenver the user submits a new transaction form. This can expressed as</p>
 
-&lt;pre&gt;&lt;code class&#x3D;&quot;language-feature&quot;&gt;Scenario: submitting an income entry form
+<pre><code class="language-feature">Scenario: submitting an income entry form
     Given   the page has loaded
     When    the user submits an Income Entry
-    Then    the Transactions List contains the Income Entry&lt;/code&gt;&lt;/pre&gt;
+    Then    the Transactions List contains the Income Entry</code></pre>
 
-&lt;h3 id&#x3D;&#x27;notes&#x27;&gt;Notes&lt;/h3&gt;
+<h3 id='notes'>Notes</h3>
 
-&lt;ul&gt;
-&lt;li&gt;Underlying semantics is the log of input events&lt;/li&gt;
+<ul>
+<li>Underlying semantics is the log of input events</li>
 
-&lt;li&gt;Do changes propogate immediately or on sync?&lt;/li&gt;
+<li>Do changes propogate immediately or on sync?</li>
 
-&lt;li&gt;~~Each component has a cached copy of the state~~&lt;/li&gt;
+<li>~~Each component has a cached copy of the state~~</li>
 
-&lt;li&gt;Each component owns a log of events from other components or environment&lt;/li&gt;
+<li>Each component owns a log of events from other components or environment</li>
 
-&lt;li&gt;This might be too many logs for applications; current state is a &amp;quot;compressed&amp;quot;
-version of log entries&lt;/li&gt;
+<li>This might be too many logs for applications; current state is a &quot;compressed&quot;
+version of log entries</li>
 
-&lt;li&gt;
-&lt;p&gt;Each component is specified by a state machine that ingests events,
-updates its state, and emits other events&lt;/p&gt;
+<li>
+<p>Each component is specified by a state machine that ingests events,
+updates its state, and emits other events</p>
 
-&lt;h3 id&#x3D;&#x27;temoporal_specification&#x27;&gt;Temoporal Specification&lt;/h3&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
+<h3 id='temoporal_specification'>Temoporal Specification</h3>
+</li>
+</ul>
 
-&lt;p&gt;LTL lets us specify predicates over a linear (non-branching) sequence of evets.&lt;/p&gt;
+<p>LTL lets us specify predicates over a linear (non-branching) sequence of evets.</p>
 
-&lt;p&gt;For this app, the LTL formulas I need include&lt;/p&gt;
+<p>For this app, the LTL formulas I need include</p>
 
-&lt;p&gt;&amp;quot;For all P eventually Q&amp;quot;, after some event that matches P, there is eventually an event that matches Q&lt;/p&gt;
+<p>&quot;For all P eventually Q&quot;, after some event that matches P, there is eventually an event that matches Q</p>
 
-&lt;p&gt;&amp;quot;For all P never Q&amp;quot;, after some event matches P, there are no subsequent events matching Q&lt;/p&gt;
+<p>&quot;For all P never Q&quot;, after some event matches P, there are no subsequent events matching Q</p>
 
-&lt;p&gt;The complexity of model-checking formulas like this is O(n^2) for n the length of the model instance, i.e. number of events in the sequence.&lt;/p&gt;
+<p>The complexity of model-checking formulas like this is O(n^2) for n the length of the model instance, i.e. number of events in the sequence.</p>
+
 
 </main>
 </body>
