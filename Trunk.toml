@@ -1,4 +1,4 @@
 [build]
 target = "index.html"
 dist = "docs/app"
-public_url = "/app/"
+public_url = "https://littlebenlittle.github.io/financial-planner/app/"
