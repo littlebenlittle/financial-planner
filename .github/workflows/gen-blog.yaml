@@ -37,7 +37,7 @@ jobs:
 
   build-app:
     runs-on: ubuntu-latest
-    environment:
+    env:
       CARGO_TERM_COLOR: always
     steps:
     - name: install toolchain
