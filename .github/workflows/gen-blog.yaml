@@ -86,7 +86,7 @@ jobs:
   # deploy the site
   deploy-site:
     runs-on: ubuntu-latest
-    needs: build-site
+    needs: upload-site
     permissions:
       pages: write
       id-token: write
