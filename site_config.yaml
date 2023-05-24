@@ -1,0 +1,4 @@
+target: _site/
+source: ./site
+blog: ./site/blog
+templates: ./site/templates

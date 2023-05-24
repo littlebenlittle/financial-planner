@@ -1,0 +1,4 @@
+[build]
+target = "index.html"
+dist = "_site/app"
+public_url = "/app/"

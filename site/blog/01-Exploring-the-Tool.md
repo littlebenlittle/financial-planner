@@ -2,6 +2,7 @@
 id: 2CGWuxNOS6NWKNWxyj
 date: 2023-05-20
 title: Exploring the Tool
+template: post
 ---
 
 # {{ meta.title}}
