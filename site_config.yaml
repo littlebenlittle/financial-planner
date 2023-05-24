@@ -1,0 +1,4 @@
+target: _site/dev-blog
+source: ./dev-blog
+blog: ./dev-blog/blog
+templates: ./dev-blog/templates

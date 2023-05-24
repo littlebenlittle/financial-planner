@@ -1,6 +1,0 @@
-target: _site
-source: ./
-blog: ./blog
-templates: ./templates
-ignore:
-  - .gitignore

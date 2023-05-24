@@ -15,46 +15,86 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
+
   build-blog:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Get `site-gen`
+    - name: Get the "yolo" version of `site-gen`
       run: |
-        wget https://github.com/littlebenlittle/site-gen/releases/download/actions-test-00/site-gen
+        wget https://github.com/littlebenlittle/site-gen/releases/download/yolo/site-gen
         chmod +x ./site-gen
+    - uses: actions/checkout@v3
     - name: Build dev blog
       run: |
-        cd dev-blog
-        RUST_LOG=debug ../site-gen
+        RUST_LOG=debug ./site-gen --config site_config.yaml
+    - name: Upload blog files
+      uses: actions/upload-artifact@v3
+      with:
+        name: blog-files
+        path: _site/dev-blog/
+
+
+  build-app:
+    runs-on: ubuntu-latest
+    environment:
+      CARGO_TERM_COLOR: always
+    - name: install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+        override: true
+        profile: minimal
+    - name: Install trunk
+      uses: jetli/trunk-action@v0.1.0
+      with:
+        version: 'latest'
+    - name: Build
+      run: trunk build
+    # - name: Run tests
+    #   run: cargo test --verbose
+    # build the application at _site/
+    - name: Upload app files
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-files
+        path: dist/
+
+
+  upload-site:
+    runs-on: ubuntu-latest
+    needs:
+    - build-blog
+    - build-app
+    steps:
+    - name: Download app files
+      uses: actions/download-artifact@v3
+      with:
+        name: app-files
+        path: _site/
+    - name: Download blog files
+      uses: actions/download-artifact@v3
+      with:
+        name: blog-files
+        path: _site/dev-blog/
     - name: Upload pages artifact
       uses: actions/upload-pages-artifact@v1
-      with:
-        path: ./dev-blog/_site
-          
-  deploy-blog:
-    # Add a dependency to the build job
-    needs: build-blog
 
-    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+
+  # deploy the site
+  deploy-site:
+    runs-on: ubuntu-latest
+    needs: build-site
     permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-
-    # Deploy to the github-pages environment
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
-    # Specify runner + deployment step
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2 # or the latest "vX.X.X" version tag for this action
+        uses: actions/deploy-pages@v2
+  
