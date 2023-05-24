@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="/index-597d90855083f957.css">
+</head>
+<body>
+<main>
+    &lt;h1 id&#x3D;&#x27;{{_meta.title}}&#x27;&gt;{{ meta.title}}&lt;/h1&gt;
+
+&lt;h3 id&#x3D;&#x27;quick_summary&#x27;&gt;Quick Summary&lt;/h3&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;At this stage we know what we &lt;em&gt;might&lt;/em&gt; build. It&amp;#8217;s time to start defining that
+thing in a language that is amenable to the hardware we have available.
+&lt;br /&gt;This is much like the measurement phase of painting. Certain rules must be met
+for the painting to be compatible with our intuition about how 3D shapes work.
+&lt;br /&gt;&lt;/p&gt;
+
+&lt;h2 id&#x3D;&#x27;how_can_we_specify_state_machines?&#x27;&gt;How can we specify state machines?&lt;/h2&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;A state machine can be specified as a relation between predicates over input
+streams and predicates over output streams.&lt;/p&gt;
+
+&lt;h3 id&#x3D;&#x27;ui_specification&#x27;&gt;UI Specification&lt;/h3&gt;
+
+&lt;p&gt;In this case the input stream carries &lt;em&gt;UI Actions&lt;/em&gt; and the output stream carries
+&lt;em&gt;UI States&lt;/em&gt;. When a user inputs a sequence of UI actions that satisfies some
+predicate, the UI will produce a sequence of states that satisfy some other
+predicate.&lt;/p&gt;
+
+&lt;p&gt;For example, in the Finance Application we expect the Transaction List to update
+whenver the user submits a new transaction form. This can expressed as&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class&#x3D;&quot;language-feature&quot;&gt;Scenario: submitting an income entry form
+    Given   the page has loaded
+    When    the user submits an Income Entry
+    Then    the Transactions List contains the Income Entry&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id&#x3D;&#x27;notes&#x27;&gt;Notes&lt;/h3&gt;
+
+&lt;ul&gt;
+&lt;li&gt;Underlying semantics is the log of input events&lt;/li&gt;
+
+&lt;li&gt;Do changes propogate immediately or on sync?&lt;/li&gt;
+
+&lt;li&gt;~~Each component has a cached copy of the state~~&lt;/li&gt;
+
+&lt;li&gt;Each component owns a log of events from other components or environment&lt;/li&gt;
+
+&lt;li&gt;This might be too many logs for applications; current state is a &amp;quot;compressed&amp;quot;
+version of log entries&lt;/li&gt;
+
+&lt;li&gt;
+&lt;p&gt;Each component is specified by a state machine that ingests events,
+updates its state, and emits other events&lt;/p&gt;
+
+&lt;h3 id&#x3D;&#x27;temoporal_specification&#x27;&gt;Temoporal Specification&lt;/h3&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;LTL lets us specify predicates over a linear (non-branching) sequence of evets.&lt;/p&gt;
+
+&lt;p&gt;For this app, the LTL formulas I need include&lt;/p&gt;
+
+&lt;p&gt;&amp;quot;For all P eventually Q&amp;quot;, after some event that matches P, there is eventually an event that matches Q&lt;/p&gt;
+
+&lt;p&gt;&amp;quot;For all P never Q&amp;quot;, after some event matches P, there are no subsequent events matching Q&lt;/p&gt;
+
+&lt;p&gt;The complexity of model-checking formulas like this is O(n^2) for n the length of the model instance, i.e. number of events in the sequence.&lt;/p&gt;
+
+</main>
+</body>
+</html>
