@@ -1,4 +1,4 @@
-target: _site/
+target: docs/
 source: ./site
 blog: ./site/blog
 templates: ./site/templates

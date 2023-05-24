@@ -1,4 +1,4 @@
 [build]
 target = "index.html"
-dist = "_site/app"
+dist = "docs/app"
 public_url = "/app/"
