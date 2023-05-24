@@ -1,11 +1,11 @@
 ---
 id: tREmDsdp9vlHGda65q
 date: 2023-05-20
-title: Defining-the-Process
+title: Defining the Process
 template: post
 ---
 
-# {{ meta.title}}
+# Defining the Process
 
 ### Quick Summary
 

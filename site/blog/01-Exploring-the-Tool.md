@@ -5,7 +5,7 @@ title: Exploring the Tool
 template: post
 ---
 
-# {{ meta.title}}
+# Exploring the Tool
 
 ### Quick Summary
 
