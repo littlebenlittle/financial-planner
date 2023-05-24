@@ -20,11 +20,11 @@ jobs:
   build-blog:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v3
     - name: Get the "yolo" version of `site-gen`
       run: |
         wget https://github.com/littlebenlittle/site-gen/releases/download/yolo/site-gen
         chmod +x ./site-gen
-    - uses: actions/checkout@v3
     - name: Build dev blog
       run: |
         RUST_LOG=debug ./site-gen --config site_config.yaml
@@ -40,6 +40,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
+    - uses: actions/checkout@v3
     - name: install toolchain
       uses: actions-rs/toolchain@v1
       with:
