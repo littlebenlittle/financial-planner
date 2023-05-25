@@ -13,49 +13,29 @@ pub struct TimelineProps {
     pub data: Option<TimelineData>,
     pub title: String,
     pub canvas_id: String,
-    pub set_date_range: Callback<(Date, Date)>,
+    pub set_start_date: Callback<String>,
+    pub set_end_date: Callback<String>,
+    pub start_date: String,
+    pub end_date: String,
+}
+
+fn callback_from_input_element(cb: Callback<String>) -> Box<dyn Fn(Event) -> ()> {
+    Box::new(move |e: Event| {
+        if let Some(input) = e
+            .target()
+            .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
+        {
+            cb.emit(input.value())
+        }
+    })
 }
 
 #[function_component(Timeline)]
 pub fn timeline(props: &TimelineProps) -> Html {
-    let start_date_handle = use_state(String::new);
-    let end_date_handle = use_state(String::new);
     let view_type_handle = use_state_eq(|| ViewType::Text);
+    let on_start_date_change = callback_from_input_element(props.set_start_date.clone());
+    let on_end_date_change = callback_from_input_element(props.set_end_date.clone());
 
-    let on_start_date_change = {
-        let start_date = start_date_handle.clone();
-        let end_date = end_date_handle.clone();
-        let set_date_range = props.set_date_range.clone();
-        move |e: Event| {
-            if let Some(input) = e
-                .target()
-                .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
-            {
-                start_date.set(input.value());
-                if let Some(range) = validate_dates(&*start_date, &*end_date) {
-                    set_date_range.emit(range)
-                }
-            }
-        }
-    };
-
-    let on_end_date_change = {
-        let start_date = start_date_handle.clone();
-        let end_date = end_date_handle.clone();
-        let set_date_range = props.set_date_range.clone();
-        move |e: Event| {
-            if let Some(input) = e
-                .target()
-                .and_then(|t| t.dyn_into::<HtmlInputElement>().ok())
-            {
-                end_date.set(input.value());
-                if let Some(range) = validate_dates(&*start_date, &*end_date) {
-                    set_date_range.emit(range)
-                }
-            }
-        }
-    };
-    
     let on_view_type_change = {
         let view_type_handle = view_type_handle.clone();
         move |e: Event| {
@@ -71,13 +51,21 @@ pub fn timeline(props: &TimelineProps) -> Html {
             }
         }
     };
-    
-    let start_date = (*start_date_handle).clone();
-    let end_date = (*end_date_handle).clone();
+
     let view_type = (*view_type_handle).clone();
     html! {
     <section>
         <h3>{props.title.clone()}</h3>
+        <p>{"Start Date: "}</p>
+        <input onchange={on_start_date_change}
+            type="date"
+            value={props.start_date.clone()}
+        />
+        <p>{"End Date: "}</p>
+        <input onchange={on_end_date_change}
+            type="date"
+            value={props.end_date.clone()}
+        />
         <p>{"View Type: "}</p>
         <input
             type="radio"
@@ -112,16 +100,6 @@ pub fn timeline(props: &TimelineProps) -> Html {
         } else {
             html!{}
         }}
-        <p>{"Start Date: "}</p>
-        <input onchange={on_start_date_change}
-            type="date"
-            value={start_date}
-        />
-        <p>{"End Date: "}</p>
-        <input onchange={on_end_date_change}
-            type="date"
-            value={end_date}
-        />
     </section>
     }
 }
@@ -138,7 +116,7 @@ impl FromStr for ViewType {
         match s {
             "text" => Ok(Self::Text),
             "histogram" => Ok(Self::Histogram),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -186,29 +164,11 @@ pub fn histogram(props: &DateSummaryViewProps) -> Html {
         <p>{"Date: "}{summary.date}</p>
         <p>{"Income: "}{summary.income}</p>
         <p>{"Expenses: "}{summary.expenses}</p>
+        <p>{"Balance: "}{summary.balance}</p>
         <hr />
         </>
     })}
     </>
-    }
-}
-
-fn validate_dates(start_date: &str, end_date: &str) -> Option<(Date, Date)> {
-    match (start_date.parse::<Date>(), end_date.parse::<Date>()) {
-        (Err(e1), Err(e2)) => {
-            gloo_console::log!(format!("start date parse error: {e1:?}"));
-            gloo_console::log!(format!("end date parse error: {e2:?}"));
-            None
-        }
-        (Err(e), Ok(_)) => {
-            gloo_console::log!(format!("start date parse error: {e:?}"));
-            None
-        }
-        (Ok(_), Err(e)) => {
-            gloo_console::log!(format!("end date parse error: {e:?}"));
-            None
-        }
-        (Ok(start_date), Ok(end_date)) => Some((start_date, end_date)),
     }
 }
 
@@ -262,7 +222,7 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.income)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.income as u32)),
             ),
     )?;
 
@@ -272,7 +232,7 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.expenses)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.expenses as u32)),
             ),
     )?;
 
@@ -282,7 +242,7 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.balance)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.balance as u32)),
             ),
     )?;
 

@@ -1,50 +1,76 @@
 use crate::app_state::*;
 use crate::components::*;
+use chrono::Duration;
 use yew::prelude::*;
 
 use TransactionKind::{Expense, Income};
 
+fn today() -> Date {
+    chrono::Local::now().date_naive()
+}
+
 #[function_component(App)]
 pub fn app() -> Html {
-    let state_handle = use_reducer(State::default);
-    let counter_handle = use_state(|| TransactionId::default());
-    let state = (*state_handle).clone();
+    let log = use_reducer(|| {
+        let mut log = Log::default();
+        log.append(Entry::SetDate(
+            (today(), today() + Duration::days(30)).into(),
+        ));
+        log
+    });
+    let start_date = use_state(|| today());
+    let end_date = use_state(|| (today() + Duration::days(30)));
 
-    let set_date_range = {
-        let state = state_handle.clone();
-        move |(from, to)| state.dispatch(Action::SetDateRange { from, to })
+    let set_start_date = {
+        let start_date = start_date.clone();
+        let end_date = end_date.clone();
+        let log = log.clone();
+        move |date_string: String| match date_string.parse::<Date>() {
+            Ok(date) => {
+                start_date.set(date);
+                log.dispatch(Entry::SetDate((date, *end_date).into()));
+            }
+            Err(e) => gloo_console::log!(format!("start date: {e:?}")),
+        }
+    };
+
+    let set_end_date = {
+        let start_date = start_date.clone();
+        let end_date = end_date.clone();
+        let log = log.clone();
+        move |date_string: String| match date_string.parse::<Date>() {
+            Ok(date) => {
+                end_date.set(date);
+                log.dispatch(Entry::SetDate((*start_date, date).into()));
+            }
+            Err(e) => gloo_console::log!(format!("end date: {e:?}")),
+        }
     };
 
     let delete_transaction = {
-        let state = state_handle.clone();
-        move |id| state.dispatch(Action::DeleteTransaction(id))
+        let log = log.clone();
+        move |id| log.dispatch(Entry::Delete(id))
     };
 
     let report_income = {
-        let state = state_handle.clone();
-        let counter = counter_handle.clone();
+        let log = log.clone();
         move |(date, value)| {
-            state.dispatch(Action::CreateTransaction(Transaction {
+            log.dispatch(Entry::Create(Transaction {
                 value,
                 kind: Income,
                 date,
-                id: (*counter),
             }));
-            counter.set(*counter + 1);
         }
     };
 
     let report_expense = {
-        let state = state_handle.clone();
-        let counter = counter_handle.clone();
+        let log = log.clone();
         move |(date, value)| {
-            state.dispatch(Action::CreateTransaction(Transaction {
+            log.dispatch(Entry::Create(Transaction {
                 value,
                 kind: Expense,
                 date,
-                id: (*counter),
             }));
-            counter.set(*counter + 1);
         }
     };
 
@@ -55,16 +81,11 @@ pub fn app() -> Html {
                 "private information. Any information entered into this app should be ",
                 "considered effectively public information.",
             }}</b></p>
-            <Timeline
-                title={"Timeline"}
-                canvas_id={"my_canvas"}
-                data={state.timeline_data()}
-                set_date_range={set_date_range}
-            />
+            <DebugWindow log={log.entries()} />
             <TransactionsList
                 title={"Transactions List"}
-                data={state.transactions_list_data()}
-                delete_transaction={delete_transaction}
+                data={log.transaction_records()}
+                {delete_transaction}
             />
             <TransactionForm
                 title={"Income Form"}
@@ -73,6 +94,15 @@ pub fn app() -> Html {
             <TransactionForm
                 title={"Expense Form"}
                 submit={report_expense}
+            />
+            <Timeline
+                title={"Timeline"}
+                canvas_id={"my_canvas"}
+                data={log.timeline_data()}
+                start_date={(*start_date).to_string()}
+                end_date={(*end_date).to_string()}
+                {set_start_date}
+                {set_end_date}
             />
         </main>
     }

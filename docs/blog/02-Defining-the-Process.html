@@ -70,7 +70,7 @@ deleted transaction.</p>
 
 <p>So how do we formally specify this intuitive rule?</p>
 
-<h2 id='semantics_of_event-driven_archicitures'>Semantics of Event-Driven Archicitures</h2>
+<h2 id='semantics_of_event-driven_architectures'>Semantics of Event-Driven Architectures</h2>
 
 <p>The semantics of a specification tell us the <em>meaning</em>, that is how the
 properties of a system&#8217;s input relate to properties of the system&#8217;s output.
@@ -118,6 +118,13 @@ two transactions with same id? What if a user deletes a transaction with an id
 that hasn&#8217;t been created yet? The more questions like these that we can answer,
 the more constrained our implementation will be and the fewer &quot;unexpected&quot;
 results we will get!</p>
+
+<h3 id='notes'>Notes</h3>
+
+<ul>
+<li>For responsive UI design, we are often interested in &quot;immediate&quot; next states,
+which is &quot;next&quot; or X in LTL</li>
+</ul>
 
 
 </main>

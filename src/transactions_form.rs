@@ -30,16 +30,16 @@ pub fn transactions_form(props: &TransactionFormProps) -> Html {
                     None
                 }
             };
-            let value = match value.parse::<u32>() {
-                Ok(value) => Some(value),
+            match value.parse::<u16>() {
+                Ok(value) => {
+                    if date.is_some() {
+                        submit.emit((date.unwrap(), value as Dollars));
+                    }
+                }
                 Err(e) => {
                     gloo_console::log!(format!("{e:?}"));
-                    None
                 }
             };
-            if date.is_some() && value.is_some() {
-                submit.emit((date.unwrap(), value.unwrap()));
-            }
         }
     };
 
@@ -82,4 +82,3 @@ pub fn transactions_form(props: &TransactionFormProps) -> Html {
         </section>
     }
 }
-

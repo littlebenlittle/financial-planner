@@ -10,6 +10,7 @@ mod text_timeline;
 mod timeline;
 mod transactions_form;
 mod transactions_list;
+mod debug_window;
 
 use app::App;
 
@@ -21,4 +22,5 @@ mod components {
     pub use super::timeline::Timeline;
     pub use super::transactions_form::TransactionForm;
     pub use super::transactions_list::TransactionsList;
+    pub use super::debug_window::DebugWindow;
 }

@@ -3,7 +3,7 @@ use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct TransactionsListProps {
-    pub data: TransactionsListData,
+    pub data: Vec<TransactionRecord>,
     pub delete_transaction: Callback<TransactionId>,
     pub title: String,
 }
@@ -14,11 +14,11 @@ pub fn transactions_list(props: &TransactionsListProps) -> Html {
     <section>
         <h3>{props.title.clone()}</h3>
         <ol>
-            {for props.data.transactions.iter().map(|tr| html!{
+            {for props.data.iter().map(|tr| html!{
                 <TransactionsListItem
-                    value={tr.value}
-                    kind={tr.kind}
-                    date={tr.date}
+                    value={tr.transaction.value}
+                    kind={tr.transaction.kind}
+                    date={tr.transaction.date}
                     id={tr.id}
                     delete_transaction={props.delete_transaction.clone()}
                 />
