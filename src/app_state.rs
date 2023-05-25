@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::{iter::FlatMap, rc::Rc};
+use std::{collections::BTreeMap, iter::FlatMap, marker::PhantomData, ops::RangeFrom, rc::Rc};
 use wrapper::Wrapper;
 use yew::Reducible;
 
@@ -45,7 +45,25 @@ pub struct Transaction {
     pub value: Dollars,
     pub kind: TransactionKind,
     pub date: Date,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TransactionRecord {
+    pub transaction: Transaction,
     pub id: TransactionId,
+}
+
+impl From<(TransactionId, Transaction)> for TransactionRecord {
+    fn from(value: (TransactionId, Transaction)) -> Self {
+        Self {
+            transaction: Transaction {
+                value: value.1.value,
+                kind: value.1.kind,
+                date: value.1.date,
+            },
+            id: value.0,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -83,13 +101,13 @@ impl Default for TimelineData {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TransactionsListData {
-    pub transactions: Vec<Transaction>,
+    pub transaction_records: Vec<TransactionRecord>,
 }
 
 impl Default for TransactionsListData {
     fn default() -> Self {
         Self {
-            transactions: Default::default(),
+            transaction_records: Default::default(),
         }
     }
 }
@@ -102,14 +120,6 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn try_into_id(&self) -> Option<&TransactionId> {
-        match self {
-            Self::CreateTransaction(tr) => Some(&tr.id),
-            Self::DeleteTransaction(id) => Some(id),
-            _ => None,
-        }
-    }
-
     pub fn is_create(&self) -> bool {
         match self {
             Self::CreateTransaction(_) => true,
@@ -150,8 +160,8 @@ impl State {
     pub fn transactions_list_data(&self) -> TransactionsListData {
         compute_transactions_list_data(&self.0)
     }
-    pub fn transactions(&self) -> Vec<Transaction> {
-        compute_transactions(&self.0)
+    pub fn transactions(&self) -> Vec<TransactionRecord> {
+        compute_transaction_records(&self.0)
     }
 }
 
@@ -185,11 +195,25 @@ fn compute_timeline_data(log: &Vec<Action>) -> TimelineData {
 }
 
 fn compute_date_range(log: &Vec<Action>) -> (Date, Date) {
-    Default::default()
+    log.iter()
+        .rev()
+        .find_map(|a: &Action| match a {
+            Action::SetDateRange { from, to } => Some((*from, *to)),
+            _ => None,
+        })
+        .unwrap_or(("2023-01-01".parse().unwrap(), "2023-01-31".parse().unwrap()))
 }
 
-fn compute_income_on(log: &Vec<Action>, date: &Date) -> Dollars {
-    Default::default()
+fn compute_income_on(log: &Vec<Action>, on: &Date) -> Dollars {
+    compute_transaction_records(log)
+        .iter()
+        .filter_map(
+            |TransactionRecord {
+                 transaction: Transaction { date, value, .. },
+                 ..
+             }| if on == date { Some(value) } else { None },
+        )
+        .sum()
 }
 
 fn compute_expenses_on(log: &Vec<Action>, date: &Date) -> Dollars {
@@ -201,16 +225,19 @@ fn compute_transactions_list_data(log: &Vec<Action>) -> TransactionsListData {
     // 1. Every non-deleted transaction is present in the data
     // 2. No deleted transaction is present in the data
     // 3. The data is sorted by the date of the transaction
-    let mut transactions = compute_transactions(log);
-    transactions.sort_by(|a, b| a.date.cmp(&b.date));
-    TransactionsListData { transactions }
+    let mut transaction_records = compute_transaction_records(log);
+    transaction_records.sort_by(|a, b| a.transaction.date.cmp(&b.transaction.date));
+    TransactionsListData {
+        transaction_records,
+    }
 }
 
-fn compute_transactions(log: &Vec<Action>) -> Vec<Transaction> {
+fn compute_transaction_records(log: &Vec<Action>) -> Vec<TransactionRecord> {
     // Spec:
     // 1. Every non-deleted transaction is present in the data
     // 2. No deleted transaction is present in the data
-    let mut transactions = Vec::<Transaction>::new();
+    let mut id_iter = 0..;
+    let mut transactions = Vec::<TransactionRecord>::new();
     for action in log {
         match action {
             Action::DeleteTransaction(id) => {
@@ -219,7 +246,8 @@ fn compute_transactions(log: &Vec<Action>) -> Vec<Transaction> {
                 }
             }
             Action::CreateTransaction(tr) => {
-                transactions.push(tr.clone());
+                let id = id_iter.next().unwrap();
+                transactions.push((id, tr.clone()).into());
             }
             _ => {}
         }
@@ -227,12 +255,89 @@ fn compute_transactions(log: &Vec<Action>) -> Vec<Transaction> {
     transactions
 }
 
+#[derive(Debug, PartialEq, Clone)]
+struct DateRange {
+    start: Date,
+    end: Date,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum Entry {
+    Create(Transaction),
+    Delete(TransactionId),
+    SetDate(DateRange),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct Log {
+    entries: Vec<Entry>,
+}
+
+impl Log {
+    pub fn transaction_records(&self) -> Vec<TransactionRecord> {
+        let mut transaction_records = BTreeMap::new();
+        let mut id_iter = 0_u16..;
+        for entry in self.entries {
+            match entry {
+                Entry::Create(t) => {
+                    let id = id_iter.next().unwrap();
+                    transaction_records.insert(id, t);
+                }
+                Entry::Delete(id) => {
+                    transaction_records.remove(&id);
+                }
+                _ => {}
+            }
+        }
+        transaction_records
+            .iter()
+            .map(|(id, t)| (*id, *t).into())
+            .collect_vec()
+    }
+
+    pub fn create_entries(&self) -> Vec<(usize, Transaction)> {
+        self.entries
+            .iter()
+            .enumerate()
+            .filter_map(|(i, e)| match e {
+                Entry::Create(t) => Some((i, *t)),
+                _ => None,
+            })
+            .collect_vec()
+    }
+
+    pub fn delete_entries(&self) -> Vec<(usize, TransactionId)> {
+        self.entries
+            .iter()
+            .enumerate()
+            .filter_map(|(i, e)| match e {
+                Entry::Delete(id) => Some((i, *id)),
+                _ => None,
+            })
+            .collect_vec()
+    }
+
+    pub fn transaction_id_at(&self, index: usize) -> TransactionId {
+        self.entries
+            .iter()
+            .filter(|e| match e {
+                Entry::Create(_) => true,
+                _ => false,
+            })
+            .count() as TransactionId
+    }
+
+}
+
 #[cfg(test)]
 mod test {
 
+    use std::marker::PhantomData;
+
     use super::{
-        compute_timeline_data, compute_transactions, compute_transactions_list_data, Action, Date,
-        Dollars, TimelineData, Transaction, TransactionId, TransactionKind, TransactionsListData,
+        compute_timeline_data, compute_transaction_records, compute_transactions_list_data, Action,
+        Date, DateRange, Dollars, Entry, Log, TimelineData, Transaction, TransactionId,
+        TransactionKind, TransactionRecord, TransactionsListData,
     };
     use chrono::NaiveDate;
     use itertools::Itertools;
@@ -249,11 +354,17 @@ mod test {
     #[derive(Clone)]
     struct DateWrapper(Date);
 
+    impl DateWrapper {
+        pub fn into_inner(self) -> Date {
+            self.0
+        }
+    }
+
     impl Arbitrary for DateWrapper {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             loop {
                 let date = NaiveDate::from_ymd_opt(
-                    arbitrary_range(g, 1900_i32..2100).unwrap(),
+                    arbitrary_range(g, 2020..2025).unwrap(),
                     arbitrary_range(g, 1_u32..13).unwrap(),
                     arbitrary_range(g, 1_u32..32).unwrap(),
                 );
@@ -286,7 +397,15 @@ mod test {
                     .choose(&[TransactionKind::Income, TransactionKind::Expense])
                     .unwrap(),
                 date: DateWrapper::arbitrary(g).0,
-                id: arbitrary_range(g, 1..50).unwrap(),
+            }
+        }
+    }
+
+    impl Arbitrary for TransactionRecord {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            TransactionRecord {
+                transaction: Transaction::arbitrary(g),
+                id: arbitrary_range(g, 1..50).unwrap(), // limit id range to get overlaps
             }
         }
     }
@@ -296,9 +415,13 @@ mod test {
     #[quickcheck]
     fn test_compute_timeline_data_1(log: Vec<Action>) -> bool {
         let summaries = compute_timeline_data(&log);
-        let transactions = compute_transactions(&log);
-        for transaction in transactions {
-            if summaries.iter().map(|s| s.date).contains(&transaction.date) {
+        let transaction_records = compute_transaction_records(&log);
+        for tr in transaction_records {
+            if summaries
+                .iter()
+                .map(|s| s.date)
+                .contains(&tr.transaction.date)
+            {
                 continue;
             } else {
                 return false;
@@ -307,24 +430,76 @@ mod test {
         return true;
     }
 
-    // compute transactions
-    // 1. This list is empty only if
-    //    - there are no RecordTransaction actions
-    //    - every RecordTransaction action is eventually followed by
-    //      DeleteTransaction action with the same transaction id
+    impl Arbitrary for Entry {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            match g.choose(&[1, 2, 3]).unwrap() {
+                1 => Self::Create(Transaction::arbitrary(g)),
+                2 => Self::Delete(TransactionId::arbitrary(g)),
+                3 => Self::SetDate(DateRange::arbitrary(g)),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    impl Arbitrary for DateRange {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self {
+                start: DateWrapper::arbitrary(g).into_inner(),
+                end: DateWrapper::arbitrary(g).into_inner(),
+            }
+        }
+    }
+
+    trait Predicate {}
+    #[derive(Debug, PartialEq, Clone)]
+    struct NonEmpty;
+    impl Predicate for NonEmpty {}
+
+    #[derive(Debug, PartialEq, Clone)]
+    struct PredicatedLog<P: Predicate> {
+        log: Log,
+        _phantom_data: PhantomData<P>,
+    }
+
+    impl PredicatedLog<NonEmpty> {
+        fn into_inner(self) -> Log {
+            self.log
+        }
+    }
+
+    impl Arbitrary for PredicatedLog<NonEmpty> {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            let mut entries = Vec::<Entry>::arbitrary(g);
+            while entries.len() == 0 {
+                entries = Vec::<Entry>::arbitrary(g)
+            }
+            Self {
+                log: Log { entries },
+                _phantom_data: PhantomData,
+            }
+        }
+    }
+
+    // compute transactions list
+    // When  the transactions list is empty
+    // Then  every create entry is followed by a delete entry
     #[quickcheck]
-    fn test_compute_transactions_1(log: Vec<Action>) -> bool {
-        let transactions = compute_transactions(&log);
-        if transactions.is_empty() {
-            match for_all_eventually(&log, Action::is_create, Action::is_delete, |a, b| {
-                a.try_into_id().unwrap() == b.try_into_id().unwrap()
-            }) {
-                Some(i) => {
-                    println!("failure at index {i}");
-                    return false;
+    fn test_transaction_records_1(log: PredicatedLog<NonEmpty>) -> bool {
+        let log = log.into_inner();
+        let transaction_records = log.transaction_records();
+        if transaction_records.is_empty() {
+            for (i, transaction) in log.create_entries() {
+                let create_id = log.transaction_id_at(i);
+                let mut j = 0;
+                for (jj, delete_id) in log.delete_entries().iter().skip(i) {
+                    if create_id == *delete_id {
+                        j = *jj;
+                        break;
+                    }
                 }
-                None => return true,
-            };
+                print!("counterexample: ({i},{j})");
+                return false;
+            }
         }
         true
     }
@@ -332,56 +507,25 @@ mod test {
     // 2. If a transaction appears in the list, then there
     //    is no later action that deletes that transaction
     #[quickcheck]
-    fn test_compute_transactions_2(log: Vec<Action>) -> bool {
-        let transactions = compute_transactions(&log);
-        let ids = transactions.iter().map(|a| a.id).collect_vec();
-        match for_all_never(&log, Action::is_create, Action::is_delete, |a, b| {
-            let a_id = a.try_into_id().unwrap();
-            let b_id = b.try_into_id().unwrap();
-            ids.contains(a_id) && a_id == b_id
-        }) {
-            Some((i, j)) => {
-                println!("failure at indices {i}, {j}");
-                false
-            }
-            None => true,
-        }
-    }
-
-    fn for_all_eventually<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> Option<usize>
-    where
-        P: Fn(&Action) -> bool,
-        Q: Fn(&Action) -> bool,
-        R: Fn(&Action, &Action) -> bool,
-    {
-        let firsts = seq.iter().enumerate().filter(|(i, a)| p(a)).peekable();
-        let seconds = seq.iter().enumerate().filter(|(i, b)| q(b));
-        for (i, f) in firsts {
-            for (j, s) in seconds {
-                if i < j && r(&f, &s) {
-                    continue;
+    fn test_transaction_records_2(log: PredicatedLog<NonEmpty>) -> bool {
+        let log = log.into_inner();
+        let transaction_records = log.transaction_records();
+        for transaction_record in transaction_records {
+            let id = &transaction_record.id;
+            match log.latest_create(&id) {
+                None => {
+                    println!("unspecified behavior: transaction in list but no corresponding create entry")
                 }
-            }
-            return Some(i);
-        }
-        return None;
-    }
-
-    fn for_all_never<P, Q, R>(seq: &Vec<Action>, p: P, q: Q, r: R) -> Option<(usize, usize)>
-    where
-        P: Fn(&Action) -> bool,
-        Q: Fn(&Action) -> bool,
-        R: Fn(&Action, &Action) -> bool,
-    {
-        let firsts = seq.iter().enumerate().filter(|(i, a)| p(a)).peekable();
-        let seconds = seq.iter().enumerate().filter(|(i, b)| q(b)).collect_vec();
-        for (i, f) in firsts {
-            for (j, s) in seconds.as_slice() {
-                if i < *j && r(&f, &s) {
-                    return Some((i, *j));
+                Some(create_index) => {
+                    for (delete_index, delete_id) in log.delete_entries().iter().skip(create_index)
+                    {
+                        if delete_id == id {
+                            return false;
+                        }
+                    }
                 }
             }
         }
-        return None;
+        true
     }
 }

@@ -67,7 +67,7 @@ This is a specific instance of a general rule:
 
 So how do we formally specify this intuitive rule?
 
-## Semantics of Event-Driven Archicitures
+## Semantics of Event-Driven Architectures
 
 The semantics of a specification tell us the *meaning*, that is how the 
 properties of a system's input relate to properties of the system's output.
@@ -103,3 +103,8 @@ two transactions with same id? What if a user deletes a transaction with an id
 that hasn't been created yet? The more questions like these that we can answer,
 the more constrained our implementation will be and the fewer "unexpected"
 results we will get!
+
+### Notes
+
+- For responsive UI design, we are often interested in "immediate" next states,
+  which is "next" or X in LTL
