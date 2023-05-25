@@ -163,6 +163,10 @@ impl Log {
     pub fn entries(&self) -> Vec<Entry> {
         self.entries.clone()
     }
+    
+    pub fn append(&mut self, e: Entry) {
+        self.entries.push(e)
+    }
 
     pub fn transaction_records(&self) -> Vec<TransactionRecord> {
         let mut transaction_records = BTreeMap::new();
