@@ -1,27 +1,8 @@
 use itertools::Itertools;
-use std::{collections::BTreeMap, iter::FlatMap, marker::PhantomData, ops::RangeFrom, rc::Rc};
-use wrapper::Wrapper;
+use std::{collections::BTreeMap, rc::Rc};
 use yew::Reducible;
 
-use crate::transactions_list::_TransactionsListItemProps::date;
-
-// #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
 pub type Date = chrono::NaiveDate;
-
-// impl Add<Duration> for Date {
-//     type Output = Self;
-//     fn add(self, rhs: Duration) -> Self::Output {
-//         Self(self.0 + rhs)
-//     }
-// }
-//
-// impl FromStr for Date {
-//     type Err = <chrono::NaiveDate as FromStr>::Err;
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         Ok(Self(s.parse()?))
-//     }
-// }
-
 pub type Dollars = u32;
 pub type TransactionId = u16;
 
@@ -125,29 +106,6 @@ impl Default for TransactionsListData {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Action {
-    CreateTransaction(Transaction),
-    DeleteTransaction(TransactionId),
-    SetDateRange { from: Date, to: Date },
-}
-
-impl Action {
-    pub fn is_create(&self) -> bool {
-        match self {
-            Self::CreateTransaction(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_delete(&self) -> bool {
-        match self {
-            Self::DeleteTransaction(_) => true,
-            _ => false,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct DateRange {
     start: Date,
@@ -156,7 +114,10 @@ pub struct DateRange {
 
 impl From<(Date, Date)> for DateRange {
     fn from(value: (Date, Date)) -> Self {
-        Self{start: value.0, end: value.1}
+        Self {
+            start: value.0,
+            end: value.1,
+        }
     }
 }
 
@@ -177,7 +138,7 @@ impl Reducible for Log {
     fn reduce(self: Rc<Self>, event: Entry) -> Rc<Self> {
         let mut entries = self.entries.clone();
         entries.push(event);
-        Self{entries}.into()
+        Self { entries }.into()
     }
 }
 
@@ -277,11 +238,10 @@ impl Log {
                     }
                 }
             }
-            timeline_data.push(date_summary)
+            timeline_data.insert(i, date_summary)
         }
         TimelineData(timeline_data)
     }
-    
 }
 
 #[cfg(test)]
@@ -290,8 +250,8 @@ mod test {
     use std::marker::PhantomData;
 
     use super::{
-        Action, Date, DateRange, Dollars, Entry, Log, Transaction, TransactionId,
-        TransactionKind, TransactionRecord
+        Date, DateRange, Dollars, Entry, Log, Transaction, TransactionId, TransactionKind,
+        TransactionRecord,
     };
     use chrono::NaiveDate;
     use itertools::Itertools;
@@ -325,20 +285,6 @@ mod test {
                 if date.is_some() {
                     return Self(date.unwrap());
                 }
-            }
-        }
-    }
-
-    impl Arbitrary for Action {
-        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            match g.choose(&[1, 2, 3]).unwrap() {
-                1 => Self::DeleteTransaction(TransactionId::arbitrary(g)),
-                2 => Self::CreateTransaction(Transaction::arbitrary(g)),
-                3 => Self::SetDateRange {
-                    from: DateWrapper::arbitrary(g).0,
-                    to: DateWrapper::arbitrary(g).0,
-                },
-                _ => unreachable!(),
             }
         }
     }
