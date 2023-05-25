@@ -1,7 +1,7 @@
 use std::{error::Error, str::FromStr};
 
 use crate::app_state::*;
-use chrono::{Duration, NaiveDate, NaiveDateTime};
+use chrono::{Duration, NaiveDate};
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use wasm_bindgen::JsCast;
@@ -164,29 +164,11 @@ pub fn histogram(props: &DateSummaryViewProps) -> Html {
         <p>{"Date: "}{summary.date}</p>
         <p>{"Income: "}{summary.income}</p>
         <p>{"Expenses: "}{summary.expenses}</p>
+        <p>{"Balance: "}{summary.balance}</p>
         <hr />
         </>
     })}
     </>
-    }
-}
-
-fn validate_dates(start_date: &str, end_date: &str) -> Option<(Date, Date)> {
-    match (start_date.parse::<Date>(), end_date.parse::<Date>()) {
-        (Err(e1), Err(e2)) => {
-            gloo_console::log!(format!("start date parse error: {e1:?}"));
-            gloo_console::log!(format!("end date parse error: {e2:?}"));
-            None
-        }
-        (Err(e), Ok(_)) => {
-            gloo_console::log!(format!("start date parse error: {e:?}"));
-            None
-        }
-        (Ok(_), Err(e)) => {
-            gloo_console::log!(format!("end date parse error: {e:?}"));
-            None
-        }
-        (Ok(start_date), Ok(end_date)) => Some((start_date, end_date)),
     }
 }
 

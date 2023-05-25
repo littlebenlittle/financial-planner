@@ -1,7 +1,4 @@
-
-use crate::{app_state::*, transactions_list::_TransactionsListItemProps::date};
-use wasm_bindgen::JsCast;
-use web_sys::HtmlInputElement;
+use crate::app_state::*;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -11,9 +8,10 @@ pub struct DebugWindowProps {
 
 #[function_component(DebugWindow)]
 pub fn debug_window(props: &DebugWindowProps) -> Html {
-    html!{
+    html! {
         <>
         <p><b>{"Debug Info:"}</b></p>
+        <p>{"Log Entries:"}</p>
         {for props.log.iter().map(|e: &Entry| match e {
             Entry::Create(t) => html!{
                 <>
@@ -39,7 +37,7 @@ pub fn debug_window(props: &DebugWindowProps) -> Html {
                 <p>{"End: "}{date_range.end}</p>
                 </>
             }
-        })}   
+        })}
         </>
     }
 }
