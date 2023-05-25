@@ -17,7 +17,7 @@ development practices. In general I follow this process:
 1. Sketching: I figure out what the tool can do
 2. Blocking: I break my sketch down into major components
 3. Specifying: I define the rules for how each component works
-4. Verifying: I define test cases for each of the rules
+4. Implementing: I write the implementation to match the specification
 
 ## See the app
 

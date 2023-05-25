@@ -6,43 +6,41 @@ use TransactionKind::{Expense, Income};
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let state_handle = use_reducer(State::default);
+    let log_handle = use_reducer(Log::default);
     let counter_handle = use_state(|| TransactionId::default());
-    let state = (*state_handle).clone();
+    let log = (*log_handle).clone();
 
     let set_date_range = {
-        let state = state_handle.clone();
-        move |(from, to)| state.dispatch(Action::SetDateRange { from, to })
+        let log = log_handle.clone();
+        move |(from, to)| log.dispatch(Entry::SetDate((from, to).into()))
     };
 
     let delete_transaction = {
-        let state = state_handle.clone();
-        move |id| state.dispatch(Action::DeleteTransaction(id))
+        let log = log_handle.clone();
+        move |id| log.dispatch(Entry::Delete(id))
     };
 
     let report_income = {
-        let state = state_handle.clone();
+        let log = log_handle.clone();
         let counter = counter_handle.clone();
         move |(date, value)| {
-            state.dispatch(Action::CreateTransaction(Transaction {
+            log.dispatch(Entry::Create(Transaction {
                 value,
                 kind: Income,
                 date,
-                id: (*counter),
             }));
             counter.set(*counter + 1);
         }
     };
 
     let report_expense = {
-        let state = state_handle.clone();
+        let log = log_handle.clone();
         let counter = counter_handle.clone();
         move |(date, value)| {
-            state.dispatch(Action::CreateTransaction(Transaction {
+            log.dispatch(Entry::Create(Transaction {
                 value,
                 kind: Expense,
                 date,
-                id: (*counter),
             }));
             counter.set(*counter + 1);
         }
@@ -58,12 +56,12 @@ pub fn app() -> Html {
             <Timeline
                 title={"Timeline"}
                 canvas_id={"my_canvas"}
-                data={state.timeline_data()}
+                data={log.timeline_data()}
                 set_date_range={set_date_range}
             />
             <TransactionsList
                 title={"Transactions List"}
-                data={state.transactions_list_data()}
+                data={log.transaction_records()}
                 delete_transaction={delete_transaction}
             />
             <TransactionForm

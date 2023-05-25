@@ -3,6 +3,8 @@ use std::{collections::BTreeMap, iter::FlatMap, marker::PhantomData, ops::RangeF
 use wrapper::Wrapper;
 use yew::Reducible;
 
+use crate::transactions_list::_TransactionsListItemProps::date;
+
 // #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
 pub type Date = chrono::NaiveDate;
 
@@ -74,6 +76,17 @@ pub struct DateSummary {
     pub balance: Dollars,
 }
 
+impl Default for DateSummary {
+    fn default() -> Self {
+        Self {
+            date: Default::default(),
+            income: 0,
+            expenses: 0,
+            balance: 0,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct TimelineData(Vec<DateSummary>);
 
@@ -135,172 +148,68 @@ impl Action {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct State(Vec<Action>);
-
-impl Default for State {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
-
-impl Reducible for State {
-    type Action = Action;
-    fn reduce(self: Rc<Self>, event: Action) -> Rc<Self> {
-        let mut inner = self.0.clone();
-        inner.push(event);
-        Self(inner).into()
-    }
-}
-
-impl State {
-    pub fn timeline_data(&self) -> TimelineData {
-        compute_timeline_data(&self.0)
-    }
-    pub fn transactions_list_data(&self) -> TransactionsListData {
-        compute_transactions_list_data(&self.0)
-    }
-    pub fn transactions(&self) -> Vec<TransactionRecord> {
-        compute_transaction_records(&self.0)
-    }
-}
-
-fn compute_timeline_data(log: &Vec<Action>) -> TimelineData {
-    // Spec:
-    // 1. Every date in range is part of the data
-    // 2. The data is sorted by the date of the transaction
-    // 3. Every date in the data has an income summary equal to the sum
-    //    of the value of every non-deleted income record ocurring on that date
-    // 4. Every date in the data has an expense summary equal to the sum
-    //    of the value of every non-deleted expense record ocurring on that date
-    // 5. Every date in the data has a balance summary equal to the sum
-    //    of the value of every non-deleted income record ocurring before that date
-    //    less the sum of the value of every non-deleted expense record ocurring before
-    //    that date
-    let (start_date, end_date) = compute_date_range(log);
-    let mut data = TimelineData::default();
-    let mut balance = 0;
-    for date in start_date.iter_days().take_while(|d| d <= &end_date) {
-        let income = compute_income_on(&log, &date);
-        let expenses = compute_expenses_on(&log, &date);
-        balance += income - expenses;
-        data.0.push(DateSummary {
-            date,
-            income,
-            expenses,
-            balance,
-        });
-    }
-    data
-}
-
-fn compute_date_range(log: &Vec<Action>) -> (Date, Date) {
-    log.iter()
-        .rev()
-        .find_map(|a: &Action| match a {
-            Action::SetDateRange { from, to } => Some((*from, *to)),
-            _ => None,
-        })
-        .unwrap_or(("2023-01-01".parse().unwrap(), "2023-01-31".parse().unwrap()))
-}
-
-fn compute_income_on(log: &Vec<Action>, on: &Date) -> Dollars {
-    compute_transaction_records(log)
-        .iter()
-        .filter_map(
-            |TransactionRecord {
-                 transaction: Transaction { date, value, .. },
-                 ..
-             }| if on == date { Some(value) } else { None },
-        )
-        .sum()
-}
-
-fn compute_expenses_on(log: &Vec<Action>, date: &Date) -> Dollars {
-    Default::default()
-}
-
-fn compute_transactions_list_data(log: &Vec<Action>) -> TransactionsListData {
-    // Spec:
-    // 1. Every non-deleted transaction is present in the data
-    // 2. No deleted transaction is present in the data
-    // 3. The data is sorted by the date of the transaction
-    let mut transaction_records = compute_transaction_records(log);
-    transaction_records.sort_by(|a, b| a.transaction.date.cmp(&b.transaction.date));
-    TransactionsListData {
-        transaction_records,
-    }
-}
-
-fn compute_transaction_records(log: &Vec<Action>) -> Vec<TransactionRecord> {
-    // Spec:
-    // 1. Every non-deleted transaction is present in the data
-    // 2. No deleted transaction is present in the data
-    let mut id_iter = 0..;
-    let mut transactions = Vec::<TransactionRecord>::new();
-    for action in log {
-        match action {
-            Action::DeleteTransaction(id) => {
-                if let Some((n, _tr)) = transactions.iter().find_position(|tr| tr.id == *id) {
-                    transactions.remove(n);
-                }
-            }
-            Action::CreateTransaction(tr) => {
-                let id = id_iter.next().unwrap();
-                transactions.push((id, tr.clone()).into());
-            }
-            _ => {}
-        }
-    }
-    transactions
-}
-
-#[derive(Debug, PartialEq, Clone)]
-struct DateRange {
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct DateRange {
     start: Date,
     end: Date,
 }
 
+impl From<(Date, Date)> for DateRange {
+    fn from(value: (Date, Date)) -> Self {
+        Self{start: value.0, end: value.1}
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
-enum Entry {
+pub enum Entry {
     Create(Transaction),
     Delete(TransactionId),
     SetDate(DateRange),
 }
 
-#[derive(Debug, PartialEq, Clone)]
-struct Log {
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Log {
     entries: Vec<Entry>,
+}
+
+impl Reducible for Log {
+    type Action = Entry;
+    fn reduce(self: Rc<Self>, event: Entry) -> Rc<Self> {
+        let mut entries = self.entries.clone();
+        entries.push(event);
+        Self{entries}.into()
+    }
 }
 
 impl Log {
     pub fn transaction_records(&self) -> Vec<TransactionRecord> {
         let mut transaction_records = BTreeMap::new();
         let mut id_iter = 0_u16..;
-        for entry in self.entries {
+        for entry in &self.entries {
             match entry {
                 Entry::Create(t) => {
                     let id = id_iter.next().unwrap();
                     transaction_records.insert(id, t);
                 }
                 Entry::Delete(id) => {
-                    transaction_records.remove(&id);
+                    transaction_records.remove(id);
                 }
                 _ => {}
             }
         }
         transaction_records
             .iter()
-            .map(|(id, t)| (*id, *t).into())
+            // this clone could be removed using TransactionRecord<'a>
+            .map(|(id, t)| (*id, (*t).clone()).into())
             .collect_vec()
     }
 
-    pub fn create_entries(&self) -> Vec<(usize, Transaction)> {
+    pub fn create_entries(&self) -> Vec<(usize, TransactionRecord)> {
         self.entries
             .iter()
             .enumerate()
             .filter_map(|(i, e)| match e {
-                Entry::Create(t) => Some((i, *t)),
+                Entry::Create(t) => Some((i, (i as TransactionId, (*t).clone()).into())),
                 _ => None,
             })
             .collect_vec()
@@ -327,6 +236,52 @@ impl Log {
             .count() as TransactionId
     }
 
+    pub fn latest_create(&self, id: &TransactionId) -> Option<usize> {
+        self.create_entries()
+            .iter()
+            .find_map(|(i, tr)| if tr.id == *id { Some(*i) } else { None })
+    }
+
+    pub fn date_range(&self) -> DateRange {
+        self.entries
+            .iter()
+            .rev()
+            .find_map(|e| match e {
+                Entry::SetDate(date_range) => Some((*date_range).clone()),
+                _ => None,
+            })
+            .unwrap_or(DateRange {
+                start: "2023-01-01".parse().unwrap(),
+                end: "2023-01-31".parse().unwrap(),
+            })
+    }
+
+    pub fn timeline_data(&self) -> TimelineData {
+        let DateRange { start, end } = self.date_range();
+        let days = start.iter_days().take_while(|d| *d <= end).collect_vec();
+        let mut timeline_data = Vec::<DateSummary>::with_capacity(days.len());
+        for (i, day) in days.iter().enumerate() {
+            let mut date_summary = DateSummary::default();
+            date_summary.date = *day;
+            for tr in self.transaction_records() {
+                if tr.transaction.date == date_summary.date {
+                    match tr.transaction.kind {
+                        TransactionKind::Income => {
+                            date_summary.income += tr.transaction.value;
+                            date_summary.balance += tr.transaction.value;
+                        }
+                        TransactionKind::Expense => {
+                            date_summary.expenses += tr.transaction.value;
+                            date_summary.balance -= tr.transaction.value;
+                        }
+                    }
+                }
+            }
+            timeline_data.push(date_summary)
+        }
+        TimelineData(timeline_data)
+    }
+    
 }
 
 #[cfg(test)]
@@ -335,9 +290,8 @@ mod test {
     use std::marker::PhantomData;
 
     use super::{
-        compute_timeline_data, compute_transaction_records, compute_transactions_list_data, Action,
-        Date, DateRange, Dollars, Entry, Log, TimelineData, Transaction, TransactionId,
-        TransactionKind, TransactionRecord, TransactionsListData,
+        Action, Date, DateRange, Dollars, Entry, Log, Transaction, TransactionId,
+        TransactionKind, TransactionRecord
     };
     use chrono::NaiveDate;
     use itertools::Itertools;
@@ -413,9 +367,10 @@ mod test {
     // 1. For every non-deleted transaction, there exists exactly one
     //    date summary whose date is equal to the transaction date
     #[quickcheck]
-    fn test_compute_timeline_data_1(log: Vec<Action>) -> bool {
-        let summaries = compute_timeline_data(&log);
-        let transaction_records = compute_transaction_records(&log);
+    fn test_compute_timeline_data_1(log: PredicatedLog<NonEmpty>) -> bool {
+        let log = log.into_inner();
+        let summaries = log.timeline_data();
+        let transaction_records = log.transaction_records();
         for tr in transaction_records {
             if summaries
                 .iter()
