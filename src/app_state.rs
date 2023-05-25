@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, rc::Rc};
 use yew::Reducible;
 
 pub type Date = chrono::NaiveDate;
-pub type Dollars = u32;
+pub type Dollars = i32;
 pub type TransactionId = u16;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -87,6 +87,14 @@ impl TimelineData {
     }
 }
 
+impl IntoIterator for TimelineData {
+    type IntoIter = <Vec<DateSummary> as IntoIterator>::IntoIter;
+    type Item = <Vec<DateSummary> as IntoIterator>::Item;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl Default for TimelineData {
     fn default() -> Self {
         Self(Default::default())
@@ -108,8 +116,17 @@ impl Default for TransactionsListData {
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct DateRange {
-    start: Date,
-    end: Date,
+    pub start: Date,
+    pub end: Date,
+}
+
+impl DateRange {
+    pub fn contains(&self, date: &Date) -> bool {
+        self.start
+            .iter_days()
+            .take_while(|d| *d <= self.end)
+            .contains(date)
+    }
 }
 
 impl From<(Date, Date)> for DateRange {
@@ -143,6 +160,10 @@ impl Reducible for Log {
 }
 
 impl Log {
+    pub fn entries(&self) -> Vec<Entry> {
+        self.entries.clone()
+    }
+
     pub fn transaction_records(&self) -> Vec<TransactionRecord> {
         let mut transaction_records = BTreeMap::new();
         let mut id_iter = 0_u16..;
@@ -228,12 +249,24 @@ impl Log {
                 if tr.transaction.date == date_summary.date {
                     match tr.transaction.kind {
                         TransactionKind::Income => {
-                            date_summary.income += tr.transaction.value;
-                            date_summary.balance += tr.transaction.value;
+                            date_summary.income = date_summary
+                                .income
+                                .checked_add(tr.transaction.value)
+                                .unwrap_or(Dollars::MAX);
+                            date_summary.balance = date_summary
+                                .balance
+                                .checked_sub(tr.transaction.value)
+                                .unwrap_or(Dollars::MIN);
                         }
                         TransactionKind::Expense => {
-                            date_summary.expenses += tr.transaction.value;
-                            date_summary.balance -= tr.transaction.value;
+                            date_summary.expenses = date_summary
+                                .expenses
+                                .checked_add(tr.transaction.value)
+                                .unwrap_or(Dollars::MIN);
+                            date_summary.balance = date_summary
+                                .balance
+                                .checked_sub(tr.transaction.value)
+                                .unwrap_or(Dollars::MIN);
                         }
                     }
                 }
@@ -250,8 +283,8 @@ mod test {
     use std::marker::PhantomData;
 
     use super::{
-        Date, DateRange, Dollars, Entry, Log, Transaction, TransactionId, TransactionKind,
-        TransactionRecord,
+        Date, DateRange, DateSummary, Dollars, Entry, Log, Transaction, TransactionId,
+        TransactionKind, TransactionRecord,
     };
     use chrono::NaiveDate;
     use itertools::Itertools;
@@ -310,27 +343,6 @@ mod test {
         }
     }
 
-    // 1. For every non-deleted transaction, there exists exactly one
-    //    date summary whose date is equal to the transaction date
-    #[quickcheck]
-    fn test_compute_timeline_data_1(log: PredicatedLog<NonEmpty>) -> bool {
-        let log = log.into_inner();
-        let summaries = log.timeline_data();
-        let transaction_records = log.transaction_records();
-        for tr in transaction_records {
-            if summaries
-                .iter()
-                .map(|s| s.date)
-                .contains(&tr.transaction.date)
-            {
-                continue;
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
-
     impl Arbitrary for Entry {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
             match g.choose(&[1, 2, 3]).unwrap() {
@@ -352,6 +364,7 @@ mod test {
     }
 
     trait Predicate {}
+    impl Predicate for () {}
     #[derive(Debug, PartialEq, Clone)]
     struct NonEmpty;
     impl Predicate for NonEmpty {}
@@ -362,7 +375,7 @@ mod test {
         _phantom_data: PhantomData<P>,
     }
 
-    impl PredicatedLog<NonEmpty> {
+    impl<P: Predicate> PredicatedLog<P> {
         fn into_inner(self) -> Log {
             self.log
         }
@@ -379,6 +392,38 @@ mod test {
                 _phantom_data: PhantomData,
             }
         }
+    }
+
+    impl Arbitrary for PredicatedLog<()> {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self {
+                log: Log {
+                    entries: Vec::<Entry>::arbitrary(g),
+                },
+                _phantom_data: PhantomData,
+            }
+        }
+    }
+
+    // 1. For every non-deleted transaction, there exists exactly one
+    //    date summary whose date is equal to the transaction date
+    #[quickcheck]
+    fn test_timeline_data_1(log: PredicatedLog<NonEmpty>) -> bool {
+        let log = log.into_inner();
+        let summaries = log.timeline_data();
+        let transaction_records = log.transaction_records();
+        for tr in transaction_records {
+            if summaries
+                .iter()
+                .map(|s| s.date)
+                .contains(&tr.transaction.date)
+            {
+                continue;
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     // compute transactions list
@@ -428,5 +473,19 @@ mod test {
             }
         }
         true
+    }
+
+    // after setting the date range, the timeline data
+    // only contains dates in that range
+    #[quickcheck]
+    fn test_timeline_data_2(log: PredicatedLog<()>, date_range: DateRange) -> bool {
+        let mut log = log.into_inner();
+        log.entries.push(Entry::SetDate(date_range.clone()));
+        for DateSummary { date, .. } in log.timeline_data() {
+            if !date_range.contains(&date) {
+                return false;
+            }
+        }
+        return true;
     }
 }

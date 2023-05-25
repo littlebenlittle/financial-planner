@@ -53,12 +53,7 @@ pub fn app() -> Html {
                 "private information. Any information entered into this app should be ",
                 "considered effectively public information.",
             }}</b></p>
-            <Timeline
-                title={"Timeline"}
-                canvas_id={"my_canvas"}
-                data={log.timeline_data()}
-                set_date_range={set_date_range}
-            />
+            <DebugWindow log={log.entries()} />
             <TransactionsList
                 title={"Transactions List"}
                 data={log.transaction_records()}
@@ -71,6 +66,12 @@ pub fn app() -> Html {
             <TransactionForm
                 title={"Expense Form"}
                 submit={report_expense}
+            />
+            <Timeline
+                title={"Timeline"}
+                canvas_id={"my_canvas"}
+                data={log.timeline_data()}
+                set_date_range={set_date_range}
             />
         </main>
     }

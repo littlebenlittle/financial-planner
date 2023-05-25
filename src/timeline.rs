@@ -55,7 +55,7 @@ pub fn timeline(props: &TimelineProps) -> Html {
             }
         }
     };
-    
+
     let on_view_type_change = {
         let view_type_handle = view_type_handle.clone();
         move |e: Event| {
@@ -71,13 +71,23 @@ pub fn timeline(props: &TimelineProps) -> Html {
             }
         }
     };
-    
+
     let start_date = (*start_date_handle).clone();
     let end_date = (*end_date_handle).clone();
     let view_type = (*view_type_handle).clone();
     html! {
     <section>
         <h3>{props.title.clone()}</h3>
+        <p>{"Start Date: "}</p>
+        <input onchange={on_start_date_change}
+            type="date"
+            value={start_date}
+        />
+        <p>{"End Date: "}</p>
+        <input onchange={on_end_date_change}
+            type="date"
+            value={end_date}
+        />
         <p>{"View Type: "}</p>
         <input
             type="radio"
@@ -112,16 +122,6 @@ pub fn timeline(props: &TimelineProps) -> Html {
         } else {
             html!{}
         }}
-        <p>{"Start Date: "}</p>
-        <input onchange={on_start_date_change}
-            type="date"
-            value={start_date}
-        />
-        <p>{"End Date: "}</p>
-        <input onchange={on_end_date_change}
-            type="date"
-            value={end_date}
-        />
     </section>
     }
 }
@@ -138,7 +138,7 @@ impl FromStr for ViewType {
         match s {
             "text" => Ok(Self::Text),
             "histogram" => Ok(Self::Histogram),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -262,7 +262,7 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.income)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.income as u32)),
             ),
     )?;
 
@@ -272,7 +272,7 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.expenses)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.expenses as u32)),
             ),
     )?;
 
@@ -282,7 +282,7 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
             .data(
                 data.iter()
                     .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.balance)),
+                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.balance as u32)),
             ),
     )?;
 
