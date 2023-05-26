@@ -1,0 +1,14 @@
+#debug-window {
+  position: sticky;
+  top: 100px;
+}
+
+#log-entries {
+  height: 200px;
+  overflow-y: scroll;
+}
+
+#log-entries code {
+  padding-left: 16px;
+  padding-right: 16px;
+}

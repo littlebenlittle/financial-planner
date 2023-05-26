@@ -76,10 +76,10 @@ pub fn app() -> Html {
 
     html! {
         <main
-            class={classes!("w3-container")}
+            class={classes!("w3-container", "w3-content")}
             style={"max-width: 1200px;"}
         >
-            <div class={classes!("w3-panel", "w3-orange")}>
+            <div class={classes!("w3-container", "w3-panel", "w3-orange")}>
                 <p><b>{concat!{
                     "This app is for demonstration purposes only. It is not intended to secure ",
                     "private information. Any information entered into this app should be ",
