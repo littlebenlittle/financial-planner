@@ -246,6 +246,7 @@ impl Log {
         let DateRange { start, end } = self.date_range();
         let days = start.iter_days().take_while(|d| *d <= end).collect_vec();
         let mut timeline_data = Vec::<DateSummary>::with_capacity(days.len());
+        let mut balance = 0i32;
         for (i, day) in days.iter().enumerate() {
             let mut date_summary = DateSummary::default();
             date_summary.date = *day;
@@ -257,9 +258,8 @@ impl Log {
                                 .income
                                 .checked_add(tr.transaction.value)
                                 .unwrap_or(Dollars::MAX);
-                            date_summary.balance = date_summary
-                                .balance
-                                .checked_sub(tr.transaction.value)
+                            balance = balance
+                                .checked_add(tr.transaction.value)
                                 .unwrap_or(Dollars::MIN);
                         }
                         TransactionKind::Expense => {
@@ -267,14 +267,14 @@ impl Log {
                                 .expenses
                                 .checked_add(tr.transaction.value)
                                 .unwrap_or(Dollars::MIN);
-                            date_summary.balance = date_summary
-                                .balance
+                            balance = balance
                                 .checked_sub(tr.transaction.value)
                                 .unwrap_or(Dollars::MIN);
                         }
                     }
                 }
             }
+            date_summary.balance = balance;
             timeline_data.insert(i, date_summary)
         }
         TimelineData(timeline_data)
