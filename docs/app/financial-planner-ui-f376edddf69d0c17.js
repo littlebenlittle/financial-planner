@@ -741,12 +741,12 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_throw = function(arg0, arg1) {
         throw new Error(getStringFromWasm0(arg0, arg1));
     };
-    imports.wbg.__wbindgen_closure_wrapper635 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 313, __wbg_adapter_18);
+    imports.wbg.__wbindgen_closure_wrapper828 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 413, __wbg_adapter_18);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper981 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 444, __wbg_adapter_21);
+    imports.wbg.__wbindgen_closure_wrapper1176 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 543, __wbg_adapter_21);
         return addHeapObject(ret);
     };
 
@@ -788,7 +788,7 @@ async function __wbg_init(input) {
     if (wasm !== undefined) return wasm;
 
     if (typeof input === 'undefined') {
-        input = new URL('financial-planner-ui-973509bd24fd3e0a_bg.wasm', import.meta.url);
+        input = new URL('financial-planner-ui-f376edddf69d0c17_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

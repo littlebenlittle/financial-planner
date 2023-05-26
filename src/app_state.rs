@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use serde::{Serialize, Deserialize};
 use std::{collections::BTreeMap, rc::Rc};
 use yew::Reducible;
 
@@ -6,7 +7,7 @@ pub type Date = chrono::NaiveDate;
 pub type Dollars = i32;
 pub type TransactionId = u16;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum TransactionKind {
     Income,
     Expense,
@@ -23,7 +24,7 @@ impl std::fmt::Display for TransactionKind {
 }
 
 // Compound types
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub value: Dollars,
     pub kind: TransactionKind,
@@ -114,7 +115,7 @@ impl Default for TransactionsListData {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 pub struct DateRange {
     pub start: Date,
     pub end: Date,
@@ -138,7 +139,7 @@ impl From<(Date, Date)> for DateRange {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Entry {
     Create(Transaction),
     Delete(TransactionId),
@@ -246,6 +247,7 @@ impl Log {
         let DateRange { start, end } = self.date_range();
         let days = start.iter_days().take_while(|d| *d <= end).collect_vec();
         let mut timeline_data = Vec::<DateSummary>::with_capacity(days.len());
+        let mut balance = 0i32;
         for (i, day) in days.iter().enumerate() {
             let mut date_summary = DateSummary::default();
             date_summary.date = *day;
@@ -257,9 +259,8 @@ impl Log {
                                 .income
                                 .checked_add(tr.transaction.value)
                                 .unwrap_or(Dollars::MAX);
-                            date_summary.balance = date_summary
-                                .balance
-                                .checked_sub(tr.transaction.value)
+                            balance = balance
+                                .checked_add(tr.transaction.value)
                                 .unwrap_or(Dollars::MIN);
                         }
                         TransactionKind::Expense => {
@@ -267,14 +268,14 @@ impl Log {
                                 .expenses
                                 .checked_add(tr.transaction.value)
                                 .unwrap_or(Dollars::MIN);
-                            date_summary.balance = date_summary
-                                .balance
+                            balance = balance
                                 .checked_sub(tr.transaction.value)
                                 .unwrap_or(Dollars::MIN);
                         }
                     }
                 }
             }
+            date_summary.balance = balance;
             timeline_data.insert(i, date_summary)
         }
         TimelineData(timeline_data)

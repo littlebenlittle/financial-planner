@@ -6,7 +6,6 @@ extern crate quickcheck_macros;
 
 mod app;
 mod app_state;
-mod text_timeline;
 mod timeline;
 mod transactions_form;
 mod transactions_list;
