@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use serde::{Serialize, Deserialize};
 use std::{collections::BTreeMap, rc::Rc};
 use yew::Reducible;
 
@@ -6,7 +7,7 @@ pub type Date = chrono::NaiveDate;
 pub type Dollars = i32;
 pub type TransactionId = u16;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum TransactionKind {
     Income,
     Expense,
@@ -23,7 +24,7 @@ impl std::fmt::Display for TransactionKind {
 }
 
 // Compound types
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub value: Dollars,
     pub kind: TransactionKind,
@@ -114,7 +115,7 @@ impl Default for TransactionsListData {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 pub struct DateRange {
     pub start: Date,
     pub end: Date,
@@ -138,7 +139,7 @@ impl From<(Date, Date)> for DateRange {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Entry {
     Create(Transaction),
     Delete(TransactionId),

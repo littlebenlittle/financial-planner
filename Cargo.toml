@@ -17,9 +17,11 @@ gloo-console = "0.2.3"
 itertools = "0.10"
 plotters = "0.3.3"
 plotters-canvas = "0.3.0"
-chrono = "0.4"
+chrono = {version="0.4", features=["serde"]}
 libmath = "0.2"
 wrapper = "0.1.1"
+serde = "1.0"
+serde_yaml = "0.9"
 
 [dependencies.web-sys]
 version = "0.3"

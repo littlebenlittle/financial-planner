@@ -1,4 +1,5 @@
 use crate::app_state::*;
+use itertools::Itertools;
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -36,7 +37,6 @@ pub fn debug_window(props: &DebugWindowProps) -> Html {
     }
 }
 
-
 #[derive(Properties, PartialEq)]
 struct LogEntriesProps {
     pub log: Vec<Entry>,
@@ -44,35 +44,20 @@ struct LogEntriesProps {
 
 #[function_component(LogEntries)]
 fn log_entries(props: &LogEntriesProps) -> Html {
-    html!{
-    <>
-    <p>{"Log Entries:"}</p>
-    {for props.log.iter().map(|e: &Entry| match e {
-        Entry::Create(t) => html!{
-            <>
-            <hr />
-            <p>{"Create"}</p>
-            <p>{"Date: "}{t.date}</p>
-            <p>{"Kind: "}{t.kind}</p>
-            <p>{"Value: "}{t.value}</p>
-            </>
-        },
-        Entry::Delete(id) => html! {
-            <>
-            <hr />
-            <p>{"Delete"}</p>
-            <p>{"Id: "}{id}</p>
-            </>
-        },
-        Entry::SetDate(date_range) => html!{
-            <>
-            <hr />
-            <p>{"Set Date Range"}</p>
-            <p>{"Start: "}{date_range.start}</p>
-            <p>{"End: "}{date_range.end}</p>
-            </>
-        }
-    })}
-    </>
+    // let text = props
+    //     .log
+    //     .iter()
+    //     .map(|e| serde_yaml::to_string(e).unwrap())
+    //     .join("\n");
+    let text = serde_yaml::to_string(&props.log).unwrap();
+    html! {
+        <div id={"log-entries"}>
+        <p>{"Log Entries:"}</p>
+        <div class={classes!("w3-dark-gray")}>
+        <pre class={classes!("w3-dark-gray", "w3-text-white")}>
+            {text}
+        </pre>
+        </div>
+        </div>
     }
 }
