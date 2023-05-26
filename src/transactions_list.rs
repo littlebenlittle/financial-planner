@@ -11,7 +11,7 @@ pub struct TransactionsListProps {
 #[function_component(TransactionsList)]
 pub fn transactions_list(props: &TransactionsListProps) -> Html {
     html! {
-    <section>
+    <section class={classes!("w3-container", "w3-content")}>
         <h3>{props.title.clone()}</h3>
         <ol>
             {for props.data.iter().map(|tr| html!{

@@ -16,7 +16,9 @@ pub fn debug_window(props: &DebugWindowProps) -> Html {
         }
     };
     html! {
-        <>
+    <section
+        class={classes!("w3-container", "w3-card", "w3-padding-16")}
+    >
         <p><b>{"Debug Info:"}</b></p>
         <button {onclick}>{
             if *show {
@@ -30,7 +32,7 @@ pub fn debug_window(props: &DebugWindowProps) -> Html {
         } else {
             html!{}
         }}
-        </>
+    </section>
     }
 }
 

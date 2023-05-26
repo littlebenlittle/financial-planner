@@ -54,35 +54,52 @@ pub fn timeline(props: &TimelineProps) -> Html {
 
     let view_type = (*view_type_handle).clone();
     html! {
-    <section>
+    <section class={classes!("w3-container", "w3-content")}>
         <h3>{props.title.clone()}</h3>
-        <p>{"Start Date: "}</p>
-        <input onchange={on_start_date_change}
-            type="date"
-            value={props.start_date.clone()}
-        />
-        <p>{"End Date: "}</p>
-        <input onchange={on_end_date_change}
-            type="date"
-            value={props.end_date.clone()}
-        />
-        <p>{"View Type: "}</p>
-        <input
-            type="radio"
-            id="text"
-            name="view_type"
-            value="text"
-            onchange={on_view_type_change.clone()}
-        />
-        <label for="text">{"Text"}</label>
-        <input
-            type="radio"
-            id="histogram"
-            name="view_type"
-            value="histogram"
-            onchange={on_view_type_change.clone()}
-        />
-        <label for="histogram">{"Histogram"}</label>
+        <div class={classes!("w3-container", "w3-content")}>
+            <div class={classes!("w3-container", "w3-content", "w3-cell")}>
+                <p>{"Start Date: "}</p>
+                <input onchange={on_start_date_change}
+                    type="date"
+                    value={props.start_date.clone()}
+                />
+            </div>
+            <div class={classes!("w3-container", "w3-content", "w3-cell")}>
+                <p>{"End Date: "}</p>
+                <input onchange={on_end_date_change}
+                    type="date"
+                    value={props.end_date.clone()}
+                />
+            </div>
+            <div class={classes!("w3-container", "w3-content", "w3-cell")}>
+                <p>{"View Type: "}</p>
+                <div class={classes!("w3-container", "w3-cell")}>
+                    <input
+                        type="radio"
+                        id="text"
+                        name="view_type"
+                        value="text"
+                        onchange={on_view_type_change.clone()}
+                    />
+                    <label
+                        for="text"
+                    >{"Text"}</label>
+                </div>
+                <div class={classes!("w3-container", "w3-cell")}>
+                    <input
+                        type="radio"
+                        id="histogram"
+                        name="view_type"
+                        value="histogram"
+                        onchange={on_view_type_change.clone()}
+                    />
+                    <label
+                        for="histogram"
+                    >{"Histogram"}</label>
+                </div>
+            </div>
+        </div>
+        <div class={classes!("w3-padding-32")}>
         {if let Some(data) = props.data.clone() {
             match view_type {
                 ViewType::Histogram => html!{
@@ -100,6 +117,7 @@ pub fn timeline(props: &TimelineProps) -> Html {
         } else {
             html!{}
         }}
+        </div>
     </section>
     }
 }
@@ -143,7 +161,6 @@ pub fn histogram(props: &HistogramViewProps) -> Html {
     html! {
         <canvas
             id={props.canvas_id.clone()}
-            style={"width: 80%; height: auto; max-width: 500px;"}
         />
     }
 }
