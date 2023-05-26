@@ -68,7 +68,7 @@ pub fn transactions_form(props: &TransactionFormProps) -> Html {
     };
 
     html! {
-        <section class={classes!("w3-container", "w3-content", "w3-cell")}>
+        <section class={classes!("w3-container", "w3-content")}>
             <h3>{props.title.clone()}</h3>
             <input onchange={on_value_change}
                 type="text"

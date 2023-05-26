@@ -56,22 +56,22 @@ pub fn timeline(props: &TimelineProps) -> Html {
     html! {
     <section class={classes!("w3-container", "w3-content")}>
         <h3>{props.title.clone()}</h3>
-        <div class={classes!("w3-container", "w3-content")}>
-            <div class={classes!("w3-container", "w3-content", "w3-cell")}>
+        <div class={classes!("w3-container", "w3-content", "w3-row")}>
+            <div class={classes!("w3-container", "w3-content", "w3-col", "l3", "m6", "s12")}>
                 <p>{"Start Date: "}</p>
                 <input onchange={on_start_date_change}
                     type="date"
                     value={props.start_date.clone()}
                 />
             </div>
-            <div class={classes!("w3-container", "w3-content", "w3-cell")}>
+            <div class={classes!("w3-container", "w3-content", "w3-col", "l3", "m6", "s12")}>
                 <p>{"End Date: "}</p>
                 <input onchange={on_end_date_change}
                     type="date"
                     value={props.end_date.clone()}
                 />
             </div>
-            <div class={classes!("w3-container", "w3-content", "w3-cell")}>
+            <div class={classes!("w3-container", "w3-content", "w3-col", "l3", "m12", "s12")}>
                 <p>{"View Type: "}</p>
                 <div class={classes!("w3-container", "w3-cell")}>
                     <input

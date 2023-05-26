@@ -79,13 +79,15 @@ pub fn app() -> Html {
             class={classes!("w3-container")}
             style={"max-width: 1200px;"}
         >
-            <p><b>{concat!{
-                "This app is for demonstration purposes only. It is not intended to secure ",
-                "private information. Any information entered into this app should be ",
-                "considered effectively public information.",
-            }}</b></p>
+            <div class={classes!("w3-panel", "w3-orange")}>
+                <p><b>{concat!{
+                    "This app is for demonstration purposes only. It is not intended to secure ",
+                    "private information. Any information entered into this app should be ",
+                    "considered effectively public information.",
+                }}</b></p>
+            </div>
             <div class={classes!("w3-row")}>
-                <div class={classes!("w3-col", "l9")}>
+                <div class={classes!("w3-col", "l9", "m9", "s9")}>
                     <MainAppArea
                         transaction_records={log.transaction_records()}
                         {delete_transaction}
@@ -100,7 +102,7 @@ pub fn app() -> Html {
                 </div>
                 <div
                     id={"debug-window"}
-                    class={classes!("w3-col", "l3")}
+                    class={classes!("w3-col", "l3", "m3", "s3")}
                 >
                     <DebugWindow log={log.entries()} />
                 </div>
@@ -132,6 +134,7 @@ fn main_app_area(props: &MainAppAreaProps) -> Html {
         delete_transaction={props.delete_transaction.clone()}
     />
     <div class={classes!("w3-container", "w3-content")}>
+        <h3>{"Transaction Forms"}</h3>
         <TransactionForm
             title={"Income Form"}
             submit={props.report_income.clone()}
