@@ -587,9 +587,15 @@ function __wbg_get_imports() {
         const ret = getObject(arg0).width;
         return ret;
     };
+    imports.wbg.__wbg_setwidth_afb418d3fbf71ba7 = function(arg0, arg1) {
+        getObject(arg0).width = arg1 >>> 0;
+    };
     imports.wbg.__wbg_height_a81d308a000d91d0 = function(arg0) {
         const ret = getObject(arg0).height;
         return ret;
+    };
+    imports.wbg.__wbg_setheight_3eb8729b59493242 = function(arg0, arg1) {
+        getObject(arg0).height = arg1 >>> 0;
     };
     imports.wbg.__wbg_getContext_4d5e97892c1b206a = function() { return handleError(function (arg0, arg1, arg2) {
         const ret = getObject(arg0).getContext(getStringFromWasm0(arg1, arg2));
@@ -741,12 +747,12 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_throw = function(arg0, arg1) {
         throw new Error(getStringFromWasm0(arg0, arg1));
     };
-    imports.wbg.__wbindgen_closure_wrapper828 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 413, __wbg_adapter_18);
+    imports.wbg.__wbindgen_closure_wrapper846 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 423, __wbg_adapter_18);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper1176 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 543, __wbg_adapter_21);
+    imports.wbg.__wbindgen_closure_wrapper1195 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 553, __wbg_adapter_21);
         return addHeapObject(ret);
     };
 
@@ -788,7 +794,7 @@ async function __wbg_init(input) {
     if (wasm !== undefined) return wasm;
 
     if (typeof input === 'undefined') {
-        input = new URL('financial-planner-ui-f376edddf69d0c17_bg.wasm', import.meta.url);
+        input = new URL('financial-planner-ui-854cb47ad5b35ebc_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 

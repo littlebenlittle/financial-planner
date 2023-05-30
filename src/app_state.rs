@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, rc::Rc};
 use yew::Reducible;
 
@@ -164,7 +164,7 @@ impl Log {
     pub fn entries(&self) -> Vec<Entry> {
         self.entries.clone()
     }
-    
+
     pub fn append(&mut self, e: Entry) {
         self.entries.push(e)
     }
@@ -279,6 +279,20 @@ impl Log {
             timeline_data.insert(i, date_summary)
         }
         TimelineData(timeline_data)
+    }
+}
+
+impl From<Entry> for Log {
+    fn from(value: Entry) -> Self {
+        let mut log = Log::default();
+        log.append(value);
+        log
+    }
+}
+
+impl From<Vec<Entry>> for Log {
+    fn from(value: Vec<Entry>) -> Self {
+        Self { entries: value }
     }
 }
 
@@ -493,5 +507,4 @@ mod test {
         }
         return true;
     }
-
 }
