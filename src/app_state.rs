@@ -282,6 +282,14 @@ impl Log {
     }
 }
 
+impl From<Entry> for Log {
+    fn from(value: Entry) -> Self {
+        let mut log = Log::default();
+        log.append(value);
+        log
+    }
+}
+
 #[cfg(test)]
 mod test {
 

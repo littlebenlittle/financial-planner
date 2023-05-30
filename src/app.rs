@@ -12,11 +12,9 @@ fn today() -> Date {
 #[function_component(App)]
 pub fn app() -> Html {
     let log = use_reducer(|| {
-        let mut log = Log::default();
-        log.append(Entry::SetDate(
+        Log::from(Entry::SetDate(
             (today(), today() + Duration::days(30)).into(),
-        ));
-        log
+        ))
     });
     let start_date = use_state(|| today());
     let end_date = use_state(|| (today() + Duration::days(30)));
@@ -73,41 +71,41 @@ pub fn app() -> Html {
             }));
         }
     };
-
+    
     html! {
-        <main
-            class={classes!("w3-container", "w3-content")}
-            style={"max-width: 1200px;"}
-        >
-            <div class={classes!("w3-container", "w3-panel", "w3-orange")}>
-                <p><b>{concat!{
-                    "This app is for demonstration purposes only. It is not intended to secure ",
-                    "private information. Any information entered into this app should be ",
-                    "considered effectively public information.",
-                }}</b></p>
+    <main
+        class={classes!("w3-container", "w3-content")}
+        style={"max-width: 1200px;"}
+    >
+        <div class={classes!("w3-container", "w3-panel", "w3-orange")}>
+            <p><b>{concat!{
+                "This app is for demonstration purposes only. It is not intended to secure ",
+                "private information. Any information entered into this app should be ",
+                "considered effectively public information.",
+            }}</b></p>
+        </div>
+        <div class={classes!("w3-row")}>
+            <div class={classes!("w3-col", "l9", "m9", "s9")}>
+                <MainAppArea
+                    transaction_records={log.transaction_records()}
+                    {delete_transaction}
+                    {report_income}
+                    {report_expense}
+                    start_date={*start_date}
+                    end_date={*end_date}
+                    timeline_data={log.timeline_data()}
+                    {set_start_date}
+                    {set_end_date}
+                />
             </div>
-            <div class={classes!("w3-row")}>
-                <div class={classes!("w3-col", "l9", "m9", "s9")}>
-                    <MainAppArea
-                        transaction_records={log.transaction_records()}
-                        {delete_transaction}
-                        {report_income}
-                        {report_expense}
-                        start_date={*start_date}
-                        end_date={*end_date}
-                        timeline_data={log.timeline_data()}
-                        {set_start_date}
-                        {set_end_date}
-                    />
-                </div>
-                <div
-                    id={"debug-window"}
-                    class={classes!("w3-col", "l3", "m3", "s3")}
-                >
-                    <DebugWindow log={log.entries()} />
-                </div>
+            <div
+                id={"debug-window"}
+                class={classes!("w3-col", "l3", "m3", "s3")}
+            >
+                <DebugWindow log={log.entries()} />
             </div>
-        </main>
+        </div>
+    </main>
     }
 }
 
