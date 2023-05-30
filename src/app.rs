@@ -5,19 +5,40 @@ use yew::prelude::*;
 
 use TransactionKind::{Expense, Income};
 
-fn today() -> Date {
-    chrono::Local::now().date_naive()
+fn today_plus(days: i64) -> Date {
+    chrono::Local::now().date_naive() + Duration::days(days)
 }
 
 #[function_component(App)]
 pub fn app() -> Html {
     let log = use_reducer(|| {
-        Log::from(Entry::SetDate(
-            (today(), today() + Duration::days(30)).into(),
-        ))
+        use Entry::{Create, SetDate};
+        Log::from(vec![
+            SetDate((today_plus(0), today_plus(30)).into()),
+            Create(Transaction {
+                value: 100,
+                kind: Income,
+                date: today_plus(1),
+            }),
+            Create(Transaction {
+                value: 100,
+                kind: Income,
+                date: today_plus(2),
+            }),
+            Create(Transaction {
+                value: 100,
+                kind: Expense,
+                date: today_plus(3),
+            }),
+            Create(Transaction {
+                value: 500,
+                kind: Expense,
+                date: today_plus(4),
+            }),
+        ])
     });
-    let start_date = use_state(|| today());
-    let end_date = use_state(|| (today() + Duration::days(30)));
+    let start_date = use_state(|| today_plus(0));
+    let end_date = use_state(|| today_plus(30));
 
     let set_start_date = {
         let start_date = start_date.clone();
@@ -71,7 +92,7 @@ pub fn app() -> Html {
             }));
         }
     };
-    
+
     html! {
     <main
         class={classes!("w3-container", "w3-content")}

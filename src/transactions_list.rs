@@ -13,7 +13,7 @@ pub fn transactions_list(props: &TransactionsListProps) -> Html {
     html! {
     <section class={classes!("w3-container", "w3-content")}>
         <h3>{props.title.clone()}</h3>
-        <ol>
+        <ol id="transactions-list">
             {for props.data.iter().map(|tr| html!{
                 <TransactionsListItem
                     value={tr.transaction.value}

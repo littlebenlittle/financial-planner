@@ -5,7 +5,7 @@ use chrono::{Duration, NaiveDate};
 use plotters::prelude::*;
 use plotters_canvas::CanvasBackend;
 use wasm_bindgen::JsCast;
-use web_sys::HtmlInputElement;
+use web_sys::{Element, HtmlCanvasElement, HtmlElement, HtmlInputElement};
 use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
@@ -147,6 +147,17 @@ pub struct HistogramViewProps {
 
 #[function_component(HistogramView)]
 pub fn histogram(props: &HistogramViewProps) -> Html {
+    let style = use_state_eq(String::new);
+    use_effect_with_deps(
+        {
+            let style = style.clone();
+            let canvas_id = props.canvas_id.clone();
+            move |_| {
+                style.set(compute_canvas_style(&canvas_id));
+            }
+        },
+        props.canvas_id.clone(),
+    );
     use_effect({
         let data = props.data.clone();
         let canvas_id = props.canvas_id.clone();
@@ -159,9 +170,13 @@ pub fn histogram(props: &HistogramViewProps) -> Html {
         }
     });
     html! {
-        <canvas
-            id={props.canvas_id.clone()}
-        />
+    <>
+    <p>{"Note: No support for negative balances on histogram at this time."}</p>
+    <canvas
+        id={props.canvas_id.clone()}
+        style={(*style).clone()}
+    />
+    </>
     }
 }
 
@@ -189,7 +204,6 @@ pub fn histogram(props: &DateSummaryViewProps) -> Html {
     }
 }
 
-// TODO: this method should be a view; computations performed by State object
 fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Error>> {
     let start_date = match data.start_date() {
         Some(d) => d,
@@ -215,7 +229,6 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
         .x_label_area_size(35)
         .y_label_area_size(50)
         .margin(5)
-        //.caption("Histogram Test", ("sans-serif", 50.0))
         .build_cartesian_2d((start_date..end_date).into_segmented(), 0u32..max)?;
 
     chart
@@ -256,13 +269,35 @@ fn draw_timeline(canvas_id: &str, data: TimelineData) -> Result<(), Box<dyn Erro
     chart.draw_series(
         Histogram::vertical(&chart)
             .style(BLACK.mix(0.5).filled())
-            .data(
-                data.iter()
-                    .enumerate()
-                    .map(|(n, s)| (start_date + Duration::days(n as i64), s.balance as u32)),
-            ),
+            .data(data.iter().enumerate().map(|(n, s)| {
+                (
+                    start_date + Duration::days(n as i64),
+                    s.balance.max(0) as u32,
+                )
+            })),
     )?;
 
     root.present()?;
     Ok(())
+}
+
+fn compute_canvas_style(canvas_id: &str) -> String {
+    // based on https://github.com/plotters-rs/plotters-wasm-demo/blob/38523cdba80ab5c0e65db62edee275901c27ce90/www/index.js#L45
+    let window = web_sys::window().expect("global window does not exist");
+    let document = window.document().expect("expecting a document on window");
+    let canvas: HtmlCanvasElement = document
+        .get_element_by_id(canvas_id)
+        .expect("canvas element should exist")
+        .dyn_into()
+        .expect("canvas element to be HtmlCanvasElement");
+    let aspect_ratio = canvas.width() / canvas.height();
+    let parent_node: HtmlElement = canvas
+        .parent_node()
+        .expect("canvas should have parent node")
+        .dyn_into()
+        .expect("canvas parent should be HtmlElement");
+    let size = (parent_node.offset_width() as f32 * 0.8).floor() as u32;
+    canvas.set_width(size);
+    canvas.set_height(size / aspect_ratio);
+    format!("width: {size}px; height: {}px", size / aspect_ratio)
 }
